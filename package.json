@@ -14,12 +14,16 @@
     "@emotion/react": "^11.11.4",
     "@emotion/server": "11.11.0",
     "@emotion/styled": "^11.11.5",
+    "@lit-protocol/auth-helpers": "^6.4.7",
     "@lit-protocol/contracts-sdk": "^6.4.7",
     "@lit-protocol/lit-auth-client": "^6.4.7",
     "@lit-protocol/lit-node-client": "^6.4.7",
+    "@lit-protocol/pkp-ethers": "^6.4.7",
+    "@lit-protocol/types": "^6.4.7",
     "@mui/icons-material": "^5.16.6",
     "@mui/material": "^5.16.6",
     "@mui/material-nextjs": "^5.16.6",
+    "@simplewebauthn/browser": "^10.0.0",
     "apisauce": "^3.0.1",
     "axios": "^1.7.3",
     "big.js": "^6.2.1",
@@ -30,7 +34,8 @@
     "react-dom": "18.3.1",
     "react-lottie-player": "^2.1.0",
     "react-qr-code": "^2.0.15",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "wagmi": "^2.12.7"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^14.2.4",

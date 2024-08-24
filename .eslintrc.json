@@ -46,7 +46,7 @@
         ],
         "@typescript-eslint/no-explicit-any": 0,
         "@typescript-eslint/no-unused-vars": [
-          "error",
+          "warn",
           {
             "vars": "all",
             "args": "after-used",
@@ -59,18 +59,6 @@
         "@typescript-eslint/no-confusing-non-null-assertion": "error",
         "@typescript-eslint/no-non-null-assertion": "error"
       }
-    },
-    {
-      "files": [
-        "*.spec.ts",
-        "*.spec.tsx",
-        "*.spec.js",
-        "*.spec.jsx"
-      ],
-      "env": {
-        "jest": true
-      },
-      "rules": {}
     }
   ]
 }

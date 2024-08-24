@@ -2,6 +2,8 @@ import * as React from 'react'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 
+import SignupView from '@/components/signup-view'
+
 export default function Home() {
   return (
     <>
@@ -12,6 +14,7 @@ export default function Home() {
         >
           Nakama
         </Typography>
+        <SignupView />
       </Container>
     </>
   )
