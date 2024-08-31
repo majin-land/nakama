@@ -6,7 +6,8 @@
     "lint": "nx run-many -t lint",
     "lint:fix": "nx run-many -t lint --fix",
     "reset": "nx reset",
-    "serve": "nx run-many -t serve"
+    "serve": "nx run-many -t serve",
+    "relay-bot:serve": "npx nx run relay-bot:serve:development"
   },
   "private": true,
   "dependencies": {
