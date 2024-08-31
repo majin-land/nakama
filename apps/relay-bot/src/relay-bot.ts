@@ -278,6 +278,9 @@ export async function generateUserWallet() {
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
       ipfsId: GENERATE_WALLET_IPFS_ID,
+      jsParams: {
+        publicKey: PKP_PUBLIC_KEY,
+      },
     })
 
     console.log('generateWallet.response', generateWallet.response)
