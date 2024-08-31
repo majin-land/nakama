@@ -19,7 +19,7 @@ import {
 import { npubEncode } from 'nostr-tools/nip19'
 import type { SubCloser } from 'nostr-tools/abstract-pool'
 
-import LitJsSdk, { encryptString } from '@lit-protocol/lit-node-client-nodejs'
+import * as LitJsSdk from '@lit-protocol/lit-node-client-nodejs'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import {
   createSiweMessageWithRecaps,
@@ -102,8 +102,6 @@ export async function startService({
           console.info('Payload:', payload)
           // JSON.parse(payload)
           if (payload.toLowerCase().includes('register')) {
-            // TODO: Call Lit Action
-            // litsdk.call({ event })
             const response = await generateUserWallet()
             if (response) {
               const content =
@@ -234,54 +232,59 @@ export async function loadNostrRelayList(
 export async function generateUserWallet() {
   if (!PRIVATE_KEY || !GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
 
-  const ethersSigner = new ethers.Wallet(
-    PRIVATE_KEY,
-    new JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE),
-  )
+  try {
+    const ethersSigner = new ethers.Wallet(
+      PRIVATE_KEY,
+      new JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE),
+    )
 
-  console.log('🔄 Connecting to Lit network...')
-  const litNodeClient = new LitJsSdk.LitNodeClientNodeJs({
-    alertWhenUnauthorized: false,
-    litNetwork: LitNetwork.DatilDev,
-    debug: false,
-  })
+    console.log('🔄 Connecting to Lit network...')
+    const litNodeClient = new LitJsSdk.LitNodeClientNodeJs({
+      alertWhenUnauthorized: false,
+      litNetwork: LitNetwork.DatilDev,
+      debug: false,
+    })
 
-  await litNodeClient.connect()
-  console.log('✅ Connected to Lit network')
+    await litNodeClient.connect()
+    console.log('✅ Connected to Lit network')
 
-  const sessionSigs = await litNodeClient.getSessionSigs({
-    chain: 'ethereum',
-    expiration: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
-    resourceAbilityRequests: [
-      {
-        resource: new LitActionResource('*'),
-        ability: LitAbility.LitActionExecution,
+    const sessionSigs = await litNodeClient.getSessionSigs({
+      chain: 'ethereum',
+      expiration: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
+      resourceAbilityRequests: [
+        {
+          resource: new LitActionResource('*'),
+          ability: LitAbility.LitActionExecution,
+        },
+      ],
+      authNeededCallback: async ({ resourceAbilityRequests, expiration, uri }) => {
+        const toSign = await createSiweMessageWithRecaps({
+          uri: uri!,
+          expiration: expiration!,
+          resources: resourceAbilityRequests!,
+          walletAddress: ethersSigner.address,
+          nonce: await litNodeClient.getLatestBlockhash(),
+          litNodeClient,
+        })
+
+        return await generateAuthSig({
+          signer: ethersSigner,
+          toSign,
+        })
       },
-    ],
-    authNeededCallback: async ({ resourceAbilityRequests, expiration, uri }) => {
-      const toSign = await createSiweMessageWithRecaps({
-        uri: uri!,
-        expiration: expiration!,
-        resources: resourceAbilityRequests!,
-        walletAddress: ethersSigner.address,
-        nonce: await litNodeClient.getLatestBlockhash(),
-        litNodeClient,
-      })
+    })
+    console.log('sessionSigs', sessionSigs)
 
-      return await generateAuthSig({
-        signer: ethersSigner,
-        toSign,
-      })
-    },
-  })
+    const generateWallet = await litNodeClient.executeJs({
+      sessionSigs,
+      ipfsId: GENERATE_WALLET_IPFS_ID,
+    })
 
-  const generateWallet = await litNodeClient.executeJs({
-    sessionSigs,
-    ipfsId: GENERATE_WALLET_IPFS_ID,
-  })
-
-  console.log(generateWallet.response)
-  return generateWallet.response
+    console.log('generateWallet.response', generateWallet.response)
+    return generateWallet.response
+  } catch (error) {
+    console.error(error)
+  }
 
   // console.log("🔄 Getting PKP Session Sigs...");
   // const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
