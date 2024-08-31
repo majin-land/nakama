@@ -1,0 +1,29 @@
+{
+  "tasks": {
+    "dev": "deno run --watch main.ts",
+    "build": "deno run --allow-read --allow-write --allow-env --allow-run src/encrypt-root-key/esbuild.ts"
+  },
+  "imports": {
+    "@composedb/server": "npm:@composedb/server@^0.8.0",
+    "@ethersproject/bytes": "npm:@ethersproject/bytes@^5.7.0",
+    "@ethersproject/signing-key": "npm:@ethersproject/signing-key@^5.7.0",
+    "@ethersproject/transactions": "npm:@ethersproject/transactions@^5.7.0",
+    "@ethersproject/wallet": "npm:@ethersproject/wallet@^5.7.0",
+    "@noble/hashes": "npm:@noble/hashes@^1.4.0",
+    "@noble/secp256k1": "npm:@noble/secp256k1@^2.1.0",
+    "@nostr/tools": "jsr:@nostr/tools@^2.3.1",
+    "@scure/bip32": "npm:@scure/bip32@^1.4.0",
+    "@std/assert": "jsr:@std/assert@1",
+    "@std/crypto": "jsr:@std/crypto@^1.0.3",
+    "fs": "npm:fs@^0.0.2",
+    "siwe": "npm:siwe@^2.3.2"
+  },
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "dom.asynciterable",
+      "deno.ns"
+    ]
+  }
+}
