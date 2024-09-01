@@ -1,2 +1,4 @@
 [tools]
-node = "20.12"
+node = "latest"
+deno = "latest"
+yarn = "latest"

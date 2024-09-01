@@ -14,7 +14,9 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@nakama/social-keys": ["libs/social-keys/src/index.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }
