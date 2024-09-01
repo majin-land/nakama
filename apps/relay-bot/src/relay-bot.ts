@@ -283,7 +283,7 @@ export async function generateUserWallet() {
       },
     })
 
-    console.log('generateWallet.response', generateWallet.response)
+    console.log('generateWallet.response', JSON.stringify(generateWallet, null, 2))
     return generateWallet.response
   } catch (error) {
     console.error(error)
