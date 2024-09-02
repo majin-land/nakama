@@ -107,7 +107,7 @@ export async function startService({
               const content =
                 typeof response === 'string' ? response : JSON.stringify(response) || 'registered'
               const postEvent: EventTemplate = {
-                kind: ShortTextNote,
+                kind: EncryptedDirectMessage,
                 content,
                 tags: [['p', event.pubkey]],
                 created_at: Math.floor(Date.now() / 1000),
@@ -273,7 +273,6 @@ export async function generateUserWallet() {
         })
       },
     })
-    console.log('sessionSigs', sessionSigs)
 
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
@@ -284,7 +283,7 @@ export async function generateUserWallet() {
     })
 
     console.log('generateWallet.response', JSON.stringify(generateWallet, null, 2))
-    return generateWallet.response
+    return generateWallet
   } catch (error) {
     console.error(error)
   }
