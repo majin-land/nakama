@@ -9,17 +9,11 @@ import {
 import { hkdf } from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha256'
 import { hexToBytes } from '@noble/hashes/utils'
-import {
-  EncryptedDirectMessage,
-  EncryptedDirectMessages,
-  Metadata,
-  RelayList,
-  ShortTextNote,
-} from 'nostr-tools/kinds'
+import { EncryptedDirectMessage, Metadata, RelayList } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
 import type { SubCloser } from 'nostr-tools/abstract-pool'
 
-import * as LitJsSdk from '@lit-protocol/lit-node-client-nodejs'
+import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import {
   createSiweMessageWithRecaps,
@@ -28,11 +22,15 @@ import {
   LitActionResource,
 } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
-import { ethers, JsonRpcProvider } from 'ethers'
+import * as ethers from 'ethers'
+import { api } from '@lit-protocol/wrapped-keys'
+
+const { generatePrivateKey, getEncryptedKey } = api
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 const GENERATE_WALLET_IPFS_ID = process.env.LIT_GENERATE_ADDRESS_IPFS
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
+const WRAPPED_KEY_ID = process.env.RELAY_BOT_WRAPPED_KEY_ID
 
 export interface PartialRelayListEvent extends EventTemplate {
   kind: typeof RelayList
@@ -101,6 +99,37 @@ export async function startService({
           const payload = await nip04.decrypt(nostrSeckey, event.pubkey, event.content)
           console.info('Payload:', payload)
           // JSON.parse(payload)
+          if (payload.toLowerCase().includes('get-key')) {
+            const response = await getWrappedKey()
+            if (response) {
+              const content = JSON.stringify(response)
+              const postEvent: EventTemplate = {
+                kind: EncryptedDirectMessage,
+                content,
+                tags: [['p', event.pubkey]],
+                created_at: Math.floor(Date.now() / 1000),
+              }
+              await Promise.all(
+                pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+              )
+              console.info('Response sent to user:', content)
+            }
+          }
+          if (payload.toLowerCase().includes('generate-key')) {
+            const response = await generateWrappedKey(npubEncode(nostrPubkey))
+            if (response) {
+              const content = `✅ Generated wrapped key with id: ${response.id} and public key: ${response.generatedPublicKey}`
+              const postEvent: EventTemplate = {
+                kind: EncryptedDirectMessage,
+                content,
+                tags: [['p', event.pubkey]],
+                created_at: Math.floor(Date.now() / 1000),
+              }
+              await Promise.all(
+                pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+              )
+            }
+          }
           if (payload.toLowerCase().includes('register')) {
             const response = await generateUserWallet()
             if (response) {
@@ -229,22 +258,128 @@ export async function loadNostrRelayList(
   return nostr_relays
 }
 
+export function generateEtherSigner() {
+  if (!PRIVATE_KEY) return
+  const ethersSigner = new ethers.Wallet(
+    PRIVATE_KEY,
+    new ethers.providers.JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE),
+  )
+
+  return ethersSigner
+}
+
+export function generateLitNodeClient() {
+  const litNodeClient = new LitNodeClient({
+    alertWhenUnauthorized: false,
+    litNetwork: LitNetwork.DatilDev,
+    debug: false,
+  })
+
+  return litNodeClient
+}
+
+export async function getWrappedKey() {
+  if (!PKP_PUBLIC_KEY || !WRAPPED_KEY_ID) return
+  let litNodeClient: LitNodeClient
+  try {
+    const ethersSigner = generateEtherSigner()
+    console.log('🔄 Connecting to Lit network...')
+    litNodeClient = generateLitNodeClient()
+    await litNodeClient.connect()
+    console.log('✅ Connected to Lit network')
+
+    console.log('🔄 Getting PKP Session Sigs...')
+    const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
+      pkpPublicKey: PKP_PUBLIC_KEY,
+      authMethods: [
+        await EthWalletProvider.authenticate({
+          signer: ethersSigner,
+          litNodeClient,
+          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+        }),
+      ],
+      resourceAbilityRequests: [
+        {
+          resource: new LitActionResource('*'),
+          ability: LitAbility.LitActionExecution,
+        },
+      ],
+      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+    })
+    console.log('✅ Got PKP Session Sigs')
+
+    console.log('🔄 Getting Wrapped Key metadata...')
+    const wrappedKeyMetadata = await getEncryptedKey({
+      pkpSessionSigs,
+      id: WRAPPED_KEY_ID,
+      litNodeClient,
+    })
+    console.log(`✅ Got Wrapped Key metadata`)
+    return wrappedKeyMetadata
+  } catch (error) {
+    console.error
+  } finally {
+    litNodeClient!.disconnect()
+  }
+}
+
+export async function generateWrappedKey(nostrNpub: string) {
+  if (!PKP_PUBLIC_KEY) return
+  let litNodeClient: LitNodeClient
+  try {
+    const ethersSigner = generateEtherSigner()
+    console.log('🔄 Connecting to Lit network...')
+    litNodeClient = generateLitNodeClient()
+    await litNodeClient.connect()
+    console.log('✅ Connected to Lit network')
+
+    console.log('🔄 Getting PKP Session Sigs...')
+    const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
+      pkpPublicKey: PKP_PUBLIC_KEY,
+      authMethods: [
+        await EthWalletProvider.authenticate({
+          signer: ethersSigner,
+          litNodeClient,
+          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+        }),
+      ],
+      resourceAbilityRequests: [
+        {
+          resource: new LitActionResource('*'),
+          ability: LitAbility.LitActionExecution,
+        },
+      ],
+      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+    })
+    console.log('✅ Got PKP Session Sigs')
+
+    console.log('🔄 Generating wrapped key...')
+    const response = await generatePrivateKey({
+      pkpSessionSigs,
+      network: 'evm',
+      memo: nostrNpub,
+      litNodeClient,
+    })
+    console.log(
+      `✅ Generated wrapped key with id: ${response.id} and public key: ${response.generatedPublicKey}`,
+    )
+    return response
+  } catch (error) {
+    console.error
+  } finally {
+    litNodeClient!.disconnect()
+  }
+}
+
 export async function generateUserWallet() {
-  if (!PRIVATE_KEY || !GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
+  if (!GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
+  let litNodeClient: LitNodeClient
 
   try {
-    const ethersSigner = new ethers.Wallet(
-      PRIVATE_KEY,
-      new JsonRpcProvider(LIT_RPC.CHRONICLE_YELLOWSTONE),
-    )
+    const ethersSigner = generateEtherSigner()
 
     console.log('🔄 Connecting to Lit network...')
-    const litNodeClient = new LitJsSdk.LitNodeClientNodeJs({
-      alertWhenUnauthorized: false,
-      litNetwork: LitNetwork.DatilDev,
-      debug: false,
-    })
-
+    const litNodeClient = generateLitNodeClient()
     await litNodeClient.connect()
     console.log('✅ Connected to Lit network')
 
@@ -286,47 +421,7 @@ export async function generateUserWallet() {
     return generateWallet
   } catch (error) {
     console.error(error)
+  } finally {
+    litNodeClient!.disconnect()
   }
-
-  // console.log("🔄 Getting PKP Session Sigs...");
-  // const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
-  //   pkpPublicKey: PKP_PUBLIC_KEY,
-  //   authMethods: [
-  //     await EthWalletProvider.authenticate({
-  //       signer: ethersSigner,
-  //       litNodeClient: LitNodeClient,
-  //       expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
-  //     }),
-  //   ],
-  //   resourceAbilityRequests: [
-  //     {
-  //       resource: new LitActionResource("*"),
-  //       ability: LitAbility.LitActionExecution,
-  //     },
-  //   ],
-  //   expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
-  // });
-  // console.log("✅ Got PKP Session Sigs");
-
-  // console.log("🔄 Encrypting private key...");
-  //   const { ciphertext, dataToEncryptHash } = await encryptString(
-  //     {
-  //       accessControlConditions: [
-  //         {
-  //           contractAddress: "",
-  //           standardContractType: "",
-  //           chain: "ethereum",
-  //           method: "",
-  //           parameters: [":userAddress"],
-  //           returnValueTest: {
-  //             comparator: "=",
-  //             value: ethersSigner,
-  //           },
-  //         },
-  //       ],
-  //       dataToEncrypt: privateKey,
-  //     },
-  //     litNodeClient
-  //   );
-  //   console.log("✅ Encrypted private key");
 }
