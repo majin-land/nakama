@@ -13,6 +13,8 @@ import { EncryptedDirectMessage, Metadata, RelayList } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
 import type { SubCloser } from 'nostr-tools/abstract-pool'
 
+
+
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import {
@@ -20,10 +22,18 @@ import {
   generateAuthSig,
   LitAbility,
   LitActionResource,
+  LitPKPResource,
 } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
 import * as ethers from 'ethers'
-import { api } from '@lit-protocol/wrapped-keys'
+// import { api } from '@lit-protocol/wrapped-keys'
+
+import { createClient } from '@supabase/supabase-js'
+import { api } from '@nakama/social-keys'
+
+// const supabaseUrl = 'https://kmrgcdhoqxftcrfdaclr.supabase.co'
+// const supabaseKey = process.env.SUPABASE_KEY
+// const supabase = createClient(supabaseUrl, supabaseKey)
 
 const { generatePrivateKey, getEncryptedKey } = api
 
@@ -31,6 +41,8 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY
 const GENERATE_WALLET_IPFS_ID = process.env.LIT_GENERATE_ADDRESS_IPFS
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 const WRAPPED_KEY_ID = process.env.RELAY_BOT_WRAPPED_KEY_ID
+
+const supabase = createClient('https://kmrgcdhoqxftcrfdaclr.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcmdjZGhvcXhmdGNyZmRhY2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNDgzOTEsImV4cCI6MjA0MDkyNDM5MX0.1_1UlLb2Xcw0dLypYJracpZOjKp2jc374pUhRp3mHPQ')
 
 export interface PartialRelayListEvent extends EventTemplate {
   kind: typeof RelayList
@@ -51,6 +63,10 @@ export async function startService({
   const [nostrSeckey, nostrPubkey] = getAppKeyPair(seedKey, keyIndex)
 
   if (!nostrSeckey || !nostrPubkey) throw new Error('No nostr key pair generated')
+
+  const { data, error } = await supabase
+  .from('user_key')
+  .select()
 
   console.info('npub:', npubEncode(nostrPubkey))
 
@@ -97,10 +113,12 @@ export async function startService({
         console.info('Received DM:', event)
         if (verifyEvent(event)) {
           const payload = await nip04.decrypt(nostrSeckey, event.pubkey, event.content)
-          console.info('Payload:', payload)
+          console.info('Payload:', payload, nostrSeckey, 'nostrSeckey')
           // JSON.parse(payload)
           if (payload.toLowerCase().includes('get-key')) {
+            console.log('excecute... getWrappedKey')
             const response = await getWrappedKey()
+            console.log('responseresponse... getWrappedKey', response)
             if (response) {
               const content = JSON.stringify(response)
               const postEvent: EventTemplate = {
@@ -131,7 +149,14 @@ export async function startService({
             }
           }
           if (payload.toLowerCase().includes('register')) {
-            const response = await generateUserWallet()
+            // const requestEvent: EventTemplate = {
+            //   kind: EncryptedDirectMessage,
+            //   content: payload,
+            //   tags: [['p', event.pubkey]],
+            //   created_at: Math.floor(Date.now() / 1000),
+            // }
+
+            const response = await generateUserWallet(event)
             if (response) {
               const content =
                 typeof response === 'string' ? response : JSON.stringify(response) || 'registered'
@@ -279,7 +304,9 @@ export function generateLitNodeClient() {
 }
 
 export async function getWrappedKey() {
+  console.log(PKP_PUBLIC_KEY, 'PKP_PUBLIC_KEY', WRAPPED_KEY_ID, 'WRAPPED_KEY_ID')
   if (!PKP_PUBLIC_KEY || !WRAPPED_KEY_ID) return
+  console.log('....')
   let litNodeClient: LitNodeClient
   try {
     const ethersSigner = generateEtherSigner()
@@ -371,7 +398,7 @@ export async function generateWrappedKey(nostrNpub: string) {
   }
 }
 
-export async function generateUserWallet() {
+export async function generateUserWallet(event: EventTemplate) {
   if (!GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
   let litNodeClient: LitNodeClient
 
@@ -383,37 +410,57 @@ export async function generateUserWallet() {
     await litNodeClient.connect()
     console.log('✅ Connected to Lit network')
 
-    const sessionSigs = await litNodeClient.getSessionSigs({
-      chain: 'ethereum',
-      expiration: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
+    const sessionSigs = await litNodeClient.getPkpSessionSigs({
+      pkpPublicKey: PKP_PUBLIC_KEY!,
+      //  capabilityAuthSigs: [capacityDelegationAuthSig],
+      authMethods: [
+        await EthWalletProvider.authenticate({
+          signer: ethersSigner,
+          litNodeClient,
+          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+        }),
+      ],
       resourceAbilityRequests: [
+        {
+          resource: new LitPKPResource('*'),
+          ability: LitAbility.PKPSigning,
+        },
         {
           resource: new LitActionResource('*'),
           ability: LitAbility.LitActionExecution,
         },
       ],
-      authNeededCallback: async ({ resourceAbilityRequests, expiration, uri }) => {
-        const toSign = await createSiweMessageWithRecaps({
-          uri: uri!,
-          expiration: expiration!,
-          resources: resourceAbilityRequests!,
-          walletAddress: ethersSigner.address,
-          nonce: await litNodeClient.getLatestBlockhash(),
-          litNodeClient,
-        })
-
-        return await generateAuthSig({
-          signer: ethersSigner,
-          toSign,
-        })
-      },
+      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
     })
+
+    const pkpAddress = ethers.utils.computeAddress(`0x${PKP_PUBLIC_KEY}`)
+
+    const accessControlConditions = [
+      {
+        contractAddress: '',
+        standardContractType: '',
+        chain: 'ethereum',
+        method: '',
+        parameters: [':userAddress'],
+        returnValueTest: {
+          comparator: '=',
+          value: pkpAddress,
+        },
+      },
+    ]
 
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
       ipfsId: GENERATE_WALLET_IPFS_ID,
       jsParams: {
         publicKey: PKP_PUBLIC_KEY,
+        ciphertext:
+          'jAObGwunr9xi4YbNdJ6vAHtPFJmNSfyBu445KT8jJ+Z51TGJDJ60eeXd43wa+i5xBP0hseZ0C6O2Xi36vhIP0AdCaIvqNb4/A0wusdasgq5HOLVaGBpCIOZfK3Tb9bPYhxE/9w43aDLb+O+5U9ybFNZ7/LGLrIFKdjMFZe1/2PDzdnBNYASkn5NBdDgMSJqV9GcUwNAaFkgC',
+        dataToEncryptHash: 'fba3dd2b93d7e60ba3baa762c43066a09ec6991624e23ef0a5c600d63c3d24d9',
+        // pkpAddress: '0xd3b3e6275076F9c7D300667D4F8B052D6194fD99',
+        pkpAddress,
+        accessControlConditions,
+        nostrRequest: event,
       },
     })
 
@@ -422,6 +469,6 @@ export async function generateUserWallet() {
   } catch (error) {
     console.error(error)
   } finally {
-    litNodeClient!.disconnect()
+    litNodeClient?.disconnect()
   }
 }

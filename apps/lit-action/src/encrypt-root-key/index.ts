@@ -1,17 +1,44 @@
-// no need to import ethers, it's automatically injected on the lit node side
-// import { ethers } from 'ethers';
+/**
+ *
+ * Signs a message with the Ethers wallet which is also decrypted inside the Lit Action.
+ *
+ * @jsParam pkpAddress - The Eth address of the PKP which is associated with the Wrapped Key
+ * @jsParam ciphertext - For the encrypted Wrapped Key
+ * @jsParam dataToEncryptHash - For the encrypted Wrapped Key
+ * @jsParam messageToSign - The unsigned message to be signed by the Wrapped Key
+ * @jsParam accessControlConditions - The access control condition that allows only the pkpAddress to decrypt the Wrapped Key
+ *
+ * @returns { Promise<string> } - Returns a message signed by the Ethers Wrapped key. Or returns errors if any.
+ */
 
-// import { SiweMessage } from "https://esm.sh/siwe@1.0.0";
-// import {encode, decode} from "https://deno.land/std/encoding/base64url.ts";
-// import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
+
 import { hkdf } from "https://esm.sh/@noble/hashes@1.4.0/hkdf.js";
 import { pbkdf2Async } from "https://esm.sh/@noble/hashes@1.4.0/pbkdf2.js";
 import { sha512 } from "https://esm.sh/@noble/hashes@1.4.0/sha512.js";
+import { finalizeEvent, verifyEvent } from "https://esm.sh/nostr-tools@2.7.2/pure";
+import { decrypt } from "https://esm.sh/nostr-tools@2.7.2/nip04.js";
 
 import { sha256 } from "https://esm.sh/@noble/hashes@1.4.0/sha256.js";
 
+const LIT_PREFIX = 'lit_';
+
+function removeSaltFromDecryptedKey(decryptedPrivateKey) {
+  if (!decryptedPrivateKey.startsWith(LIT_PREFIX)) {
+    throw new Error(
+      `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`
+    );
+  }
+
+  return decryptedPrivateKey.slice(LIT_PREFIX.length);
+}
 
 const go = async () => {
+
+  try {
+     // Validate nostr request
+  const isValid = verifyEvent(nostrRequest); // @JsParams nostrRequest
+  if (!isValid) throw new Error('Invalid nostr request');
+
   const random = await crypto.getRandomValues(new Uint8Array(32));
   
   const entropies: string[] = await Lit.Actions.broadcastAndCollect({
@@ -61,20 +88,39 @@ const go = async () => {
     }]
   });
 
-  // https://developer.litprotocol.com/sdk/serverless-signing/combining-decryption-shares
-  const accessControlConditions =  [
-    {
-      contractAddress: '',
-      standardContractType: '',
+  let decryptedPrivateKey;
+  try {
+    decryptedPrivateKey = await Lit.Actions.decryptToSingleNode({
+      accessControlConditions,
+      ciphertext,
+      dataToEncryptHash,
       chain: 'ethereum',
-      method: 'eth_getBalance',
-      parameters: [':userAddress', 'latest'],
-      returnValueTest: {
-        comparator: '>=',
-        value: '0',
-      },
-    },
-  ]
+      authSig: null,
+    });
+  } catch (err) {
+    const errorMessage =
+      'Error: When decrypting to a single node- ' + err.message;
+    Lit.Actions.setResponse({ response: errorMessage });
+    return;
+  }
+
+  let nostrPrivateKey;
+  try {
+      // TODO: add salt
+    nostrPrivateKey = removeSaltFromDecryptedKey(decryptedPrivateKey);
+    // nostrPrivateKey = decryptedPrivateKey;
+  } catch (err) {
+    Lit.Actions.setResponse({ response: err.message });
+    return;
+  }
+
+  console.log('nostrPrivateKey ddddddddd', nostrPrivateKey, 'decryptedPrivateKey', decryptedPrivateKey)
+  // TODO: decrypt nip04 encrypted private key
+  const payload = await decrypt(nostrPrivateKey.slice(2), nostrRequest.pubkey, nostrRequest.content);
+  // console.log('nostrRequest', nostrRequest)
+  // console.log('payload', payload)
+
+  // console.log(decryptedPrivateKey, 'decrypteddecrypted')
 
   // https://github.com/LIT-Protocol/js-sdk/blob/d30de12744552d41d1b1d709f737ae8a90d1ce3a/packages/wrapped-keys/src/lib/litActions/solana/src/generateEncryptedSolanaPrivateKey.js#L25
   const resp = await Lit.Actions.runOnce(
@@ -102,14 +148,28 @@ const go = async () => {
     }
   )
   
-  const dataToSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(resp)));
+  const toSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(resp)));
 
-  await Lit.Actions.signEcdsa({
-    toSign: dataToSign,
-    publicKey,
+  const signature = await Lit.Actions.signAndCombineEcdsa({
+    toSign,
+    publicKey, // @JsParams publicKey
     sigName: 'sigSecretKey',
   });
   
+  // const jsonSignature = JSON.parse(signature);
+  // jsonSignature.r = "0x" + jsonSignature.r.substring(2);
+  // jsonSignature.s = "0x" + jsonSignature.s;
+  // // const hexSignature = ethers.utils.joinSignature(jsonSignature);
+
+  // const signedTx = ethers.utils.serializeTransaction(
+  //   unsignedTransaction,
+  //   hexSignature
+  // );
+
+  // const recoveredAddress = ethers.utils.recoverAddress(toSign, hexSignature);
+  // console.log("HexSignature:", hexSignature);
+
+// console.log(signedTx, 'signedTx')
   const response = JSON.stringify({
     // entropy: ethers.utils.hexlify(entropy),
     // bip39Seed: ethers.utils.hexlify(seed),
@@ -119,6 +179,9 @@ const go = async () => {
   })
 
   Lit.Actions.setResponse({ response });
+  } catch (error) { 
+    Lit.Actions.setResponse({ response: error.message });
+  }
 };
 
 go();

@@ -18,5 +18,5 @@
       "@nakama/social-keys": ["libs/social-keys/src/index.ts"]
     }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": ["node_modules", "tmp", "libs/social-keys"]
 }
