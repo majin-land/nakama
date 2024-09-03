@@ -16,30 +16,24 @@ import { hkdf } from "https://esm.sh/@noble/hashes@1.4.0/hkdf.js";
 import { pbkdf2Async } from "https://esm.sh/@noble/hashes@1.4.0/pbkdf2.js";
 import { sha512 } from "https://esm.sh/@noble/hashes@1.4.0/sha512.js";
 import { finalizeEvent, verifyEvent } from "https://esm.sh/nostr-tools@2.7.2/pure";
-import { decrypt } from "https://esm.sh/nostr-tools@2.7.2/nip04.js";
+import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh/nostr-tools@2.7.2/nip04.js";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.3";
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+import { EncryptedDirectMessage } from "https://esm.sh/nostr-tools/kinds";
 
 import { sha256 } from "https://esm.sh/@noble/hashes@1.4.0/sha256.js";
 
 const LIT_PREFIX = 'lit_';
 
-// const removeSaltFromDecryptedKey = (_decryptedPrivateKey: string) => {
-//   if (!_decryptedPrivateKey.startsWith(LIT_PREFIX)) {
-//     throw new Error(
-//       `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`
-//     );
-//   }
-
-//   return _decryptedPrivateKey.slice(LIT_PREFIX.length);
-// }
 
 const go = async () => {
 
   const SUPABASE_URL = supabase.url // @JSParams supabase.url
   const SUPABASE_SERVICE_ROLE = supabase.serviceRole // @JSParams supabase.anonKey
+  const SUPABASE_ADMIN_EMAIL = supabase.email // @JSParams supabase.email
+  const SUPABASE_ADMIN_PASSWORD = supabase.password // @JSParams supabase.password
 
-  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
+  let supabaseClient
 
   try {
      // Validate nostr request
@@ -122,60 +116,45 @@ const go = async () => {
     //     `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`
     //   );
     // }
-    nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length);
-    // nostrPrivateKey = decryptedPrivateKey;
+    // nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length);
+    // TODO: will remove after noStrBot PrivateKey already setup
+    nostrPrivateKey = '0x8df6f7871767956deff0bc2c9bb1d570f1e323ff5bca3ca23079a2fe46efa58a'.slice(2);
   } catch (err) {
     Lit.Actions.setResponse({ response: err.message });
     return;
   }
-
-  console.log(nostrPrivateKey, 'nostrPrivateKey')
-
-
-  // console.log('nostrPrivateKey ddddddddd', nostrPrivateKey, 'decryptedPrivateKey')
-  // const payload = await decrypt(nostrPrivateKey.slice(2), nostrRequest.pubkey, nostrRequest.content);
-  // console.log('nostrRequest', nostrRequest)
-  // console.log('payload', payload)
-
-  // console.log(decryptedPrivateKey, 'decrypteddecrypted')
+    
+  // Decrypt the content of the nostr request
+  const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content);
+  console.info('Received DM:', payload);
 
   // https://github.com/LIT-Protocol/js-sdk/blob/d30de12744552d41d1b1d709f737ae8a90d1ce3a/packages/wrapped-keys/src/lib/litActions/solana/src/generateEncryptedSolanaPrivateKey.js#L25
-  const keystore = await Lit.Actions.runOnce(
+  const userKeystore = await Lit.Actions.runOnce(
     { waitForResponse: true, name: 'encryptedPrivateKey' },
     async () => {
-      
-        const utf8Encode = new TextEncoder();
-        
-        const { ciphertext: ciphertextRootKey, dataToEncryptHash: dataToEncryptHashRootKey } = await Lit.Actions.encrypt({
-          accessControlConditions,
-          to_encrypt: utf8Encode.encode(bip32RootKey) // Data to encrypt (encoded private key)
-        });
-      
-        // TODO: Store this data to ceramics 
-        const userSecret = JSON.stringify({
-          encryptedBip32RootKey: {
-            ciphertext: ciphertextRootKey,
-            dataToEncryptHash: dataToEncryptHashRootKey
-          },
-          accounts,
-          // npub: nostrRequest.pubkey,
-        })
+      let utf8Encode = new TextEncoder();
 
-        return userSecret
+      const { ciphertext: seedCiphertext, dataToEncryptHash: seedDataToEncryptHash } = await Lit.Actions.encrypt({
+        accessControlConditions,
+        to_encrypt: utf8Encode.encode(LIT_PREFIX + seed),
+      });
+
+      const { ciphertext: entropyCiphertext, dataToEncryptHash: entropyDataToEncryptHash } = await Lit.Actions.encrypt({
+        accessControlConditions,
+        to_encrypt: utf8Encode.encode(LIT_PREFIX + entropy),
+      });
+
+      return JSON.stringify({
+        pubkey: nostrRequest.pubkey,
+        seedCiphertext,
+        seedDataToEncryptHash,
+        entropyCiphertext,
+        entropyDataToEncryptHash,
+      });
     }
-  )
+  );
   
-  // const toSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode('keystore')));
-  // // console.log(JSON.stringify(toSign), 'jjjjjjjjjjjjjjjjjjjjjjjj')
-  // // const toSign = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(keystore)));
-  // const signature = await Lit.Actions.signAndCombineEcdsa({
-  // // const signature = await Lit.Actions.signEcdsa({
-  //   toSign,
-  //   publicKey,
-  //   sigName: 'sigSecretKeyl',
-  // });
-
-  const dataToSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(keystore)));
+  const dataToSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(userKeystore)));
 
   const sig = await Lit.Actions.signAndCombineEcdsa({
     toSign: dataToSign,
@@ -183,51 +162,71 @@ const go = async () => {
     sigName: 'sigSecretKey',
   });
 
-  console.log(JSON.stringify(sig), 'sig')
+    
+  await Lit.Actions.runOnce(
+    { waitForResponse: true, name: 'storeEncryptedKeystore' },
+    async () => {
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE)
+      await supabaseClient.auth.signInWithPassword({
+        email: SUPABASE_ADMIN_EMAIL,
+        password: SUPABASE_ADMIN_PASSWORD,
+      })
 
-  // const jsonSignature = JSON.parse(signature);
-  // jsonSignature.r = "0x" + jsonSignature.r.substring(2);
-  // jsonSignature.s = "0x" + jsonSignature.s;
-  // const hexSignature = ethers.utils.joinSignature(jsonSignature);
+      const { data: existedData } = await supabaseClient.from('keystore').select('id').eq('pubkey', nostrRequest.pubkey).single()
 
-  // console.log('hexSignature', hexSignature)
-  await supabaseClient.auth.signInWithPassword({
-    email: supabase.email,
-    password: supabase.password,
+    if (existedData) {
+      const message =  'You already have a wallet'
+      const nostrReply = {
+        kind: EncryptedDirectMessage,
+        tags: [
+          ['p', nostrRequest.pubkey],
+        ],
+        created_at: Math.floor(Date.now() / 1000),
+        content: await nip04Encrypt(nostrPrivateKey, nostrRequest.pubkey, message),
+      }
+
+      Lit.Actions.setResponse({ response: JSON.stringify(finalizeEvent(nostrReply, nostrPrivateKey))});
+      return
+    }
+
+    // Store encrypted keystore
+    const { error } = await supabaseClient.from('keystore').insert({
+      key: userKeystore,
+      signature: sig,
+      pubkey: nostrRequest.pubkey
+    })
+
+    if (error) throw error
   })
 
-  const { error } = await supabaseClient.from('keystore').insert({
-    key: keystore,
-    signature: {},
-    pubkey: nostrRequest.pubkey
-  })
+    // Create a nostr EncryptedDirectMessage
+    const nostrReplyMessage = accounts.reduce((acc, [path, account]) => {
+      if (path.startsWith("m/44'/60'/")) {
+        return acc + `Ethereum account [${path}]: ${account.address}\n`
+      } else {
+        return acc + `BIP32 address [${path}]: ${account.address}\n`
+      }
+    }, 'You have been registered on the Lit Protocol!\n\n');
 
-  if (error) throw error
-
-  // const signedTx = ethers.utils.serializeTransaction(
-  //   unsignedTransaction,
-  //   hexSignature
-  // );
-
-  // const recoveredAddress = ethers.utils.recoverAddress(toSign, hexSignature);
-  // console.log("HexSignature:", hexSignature);
-
+    const nostrReply = {
+      kind: EncryptedDirectMessage,
+      tags: [
+        ['p', nostrRequest.pubkey],
+      ],
+      created_at: Math.floor(Date.now() / 1000),
+      content: await nip04Encrypt(nostrPrivateKey, nostrRequest.pubkey, nostrReplyMessage),
+    }
   
+    Lit.Actions.setResponse({
+      response: JSON.stringify(finalizeEvent(nostrReply, nostrPrivateKey)),
+    });
 
-// console.log(signedTx, 'signedTx')
-  const response = JSON.stringify({
-    // entropy: ethers.utils.hexlify(entropy),
-    // bip39Seed: ethers.utils.hexlify(seed),
-    // bip32RootKey,
-    // bip32ExtendedPrivateKey,
-    accounts,
-  })
-
-  Lit.Actions.setResponse({ response });
   } catch (error) { 
     Lit.Actions.setResponse({ response: error.message });
   } finally {
-    supabaseClient.auth.signOut() 
+    if (supabaseClient) {
+      supabaseClient.auth.signOut() 
+    }
   }
 };
 
