@@ -1,24 +1,11 @@
-/**
- *
- * Signs a message with the Ethers wallet which is also decrypted inside the Lit Action.
- *
- * @jsParam pkpAddress - The Eth address of the PKP which is associated with the Wrapped Key
- * @jsParam ciphertext - For the encrypted Wrapped Key
- * @jsParam dataToEncryptHash - For the encrypted Wrapped Key
- * @jsParam messageToSign - The unsigned message to be signed by the Wrapped Key
- * @jsParam accessControlConditions - The access control condition that allows only the pkpAddress to decrypt the Wrapped Key
- *
- * @returns { Promise<string> } - Returns a message signed by the Ethers Wrapped key. Or returns errors if any.
- */
 
-
-import { hkdf } from "https://esm.sh/@noble/hashes@1.4.0/hkdf.js";
-import { pbkdf2Async } from "https://esm.sh/@noble/hashes@1.4.0/pbkdf2.js";
-import { sha512 } from "https://esm.sh/@noble/hashes@1.4.0/sha512.js";
+// import { verifyEvent, finalizeEvent, nip04 } from "https://esm.sh/nostr-tools@1.13.0";
+import { EncryptedDirectMessage } from "https://esm.sh/nostr-tools/kinds";
+import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh/nostr-tools@2.7.2/nip04.js";
 import { finalizeEvent, verifyEvent } from "https://esm.sh/nostr-tools@2.7.2/pure";
-import { decrypt } from "https://esm.sh/nostr-tools@2.7.2/nip04.js";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { sha256 } from "https://esm.sh/@noble/hashes@1.4.0/sha256.js";
+const CHAIN_ETHEREUM = 'ethereum' as const;
 
 const LIT_PREFIX = 'lit_';
 
@@ -32,65 +19,35 @@ function removeSaltFromDecryptedKey(decryptedPrivateKey) {
   return decryptedPrivateKey.slice(LIT_PREFIX.length);
 }
 
-const go = async () => {
+/**
+ *
+ * Generates a random Ethers private key and only allows the provided PKP to to decrypt it
+ *
+ * @jsParam nostrRequest - The nostr event that contains the request
+ * @jsParam pkpAddress - The Eth address of the PKP which is associated with the Wrapped Key
+ * @jsParam ciphertext - For the encrypted Nostr Wrapped Key
+ * @jsParam dataToEncryptHash - For the encrypted Nostr Wrapped Key
+ * @jsParam accessControlConditions - The access control condition that allows only the pkpAddress to decrypt the Wrapped Key
+ * @jsParam supabase - { url, anonKey } Storage for encrypted Root key
+ *
+ * @returns { Promise<string> } - Returns a stringified JSON object with ciphertext & dataToEncryptHash which are the result of the encryption. Also returns the publicKey of the newly generated Ethers Wrapped Key.
+ */
 
+(async () => {
+  // Validate nostr request
   try {
-     // Validate nostr request
-  const isValid = verifyEvent(nostrRequest); // @JsParams nostrRequest
+    const isValid = verifyEvent(nostrRequest); // @JsParams nostrRequest
   if (!isValid) throw new Error('Invalid nostr request');
 
-  const random = await crypto.getRandomValues(new Uint8Array(32));
+  // const SUPABASE_URL = supabase.url // @JSParams supabase.url
+  // const SUPABASE_ANON_KEY = supabase.anonKey // @JSParams supabase.anonKey
+
+  // const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   
-  const entropies: string[] = await Lit.Actions.broadcastAndCollect({
-    name: 'seeds',
-    value: ethers.utils.hexlify(random),
-  });
-
-
-  // TODO: convert to mnemonic
-  const entropyHex = entropies.sort().reduce((acc, s, idx) => acc + s.slice(2), '0x');
-  const entropy = hkdf(sha256, ethers.utils.arrayify(entropyHex), new Uint8Array(32), 'seed', 32);
-
-  // BIP39 Seed
-  const password = ''
-  const encoder = new TextEncoder();
-  const salt = encoder.encode("mnemonic" + password);
-  const seed = await pbkdf2Async(sha512, entropy, salt, { c: 2048, dkLen: 64 });
-
-  // BIP32 Root Key
-  const rootHDNode = ethers.utils.HDNode.fromSeed(seed);
-  const { extendedKey: bip32RootKey } = rootHDNode;
-  
-  // Safety check ensure all nodes agree on same BIP32 Root Key
-  const rootKeyIds: string[] = await Lit.Actions.broadcastAndCollect({
-    name: 'response',
-    value: sha256(bip32RootKey),
-  });
-
-  if (!rootKeyIds.every((id) => id === rootKeyIds[0])) throw new Error(`Node synchronization failed: Expected all responses to be "${rootKeyIds[0]}", but got variations: [${rootKeyIds.join(', ')}]`);
-
-  // BIP32 Derivation Path
-  const networkPath = "m/44'/60'/0'/0";
-
-  // BIP32 Extended Private Key
-  const networkHDNode = rootHDNode.derivePath(networkPath);
-  const { extendedKey: bip32ExtendedPrivateKey } = networkHDNode
-
-  const accounts = [0].map((num) => {
-    const path = `${networkPath}/${num}`;
-    const hd = rootHDNode.derivePath(path);
-    const wallet = new ethers.Wallet(hd);
-    const { address, publicKey: publicKeyLong } = wallet;
-    return [path, {
-      address,
-      publicKey: hd.publicKey,
-      publicKeyLong,
-    }]
-  });
-
-  let decryptedPrivateKey;
+  // Decrypt the encrypted Nostr Wrapped Key
+  let decrypted;
   try {
-    decryptedPrivateKey = await Lit.Actions.decryptToSingleNode({
+    decrypted = await Lit.Actions.decryptToSingleNode({
       accessControlConditions,
       ciphertext,
       dataToEncryptHash,
@@ -106,82 +63,155 @@ const go = async () => {
 
   let nostrPrivateKey;
   try {
-      // TODO: add salt
-    nostrPrivateKey = removeSaltFromDecryptedKey(decryptedPrivateKey);
-    // nostrPrivateKey = decryptedPrivateKey;
+    nostrPrivateKey = removeSaltFromDecryptedKey(decrypted);
   } catch (err) {
     Lit.Actions.setResponse({ response: err.message });
     return;
   }
+  
+  // Decrypt the content of the nostr request
+  // const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content);
+  // console.info('Received DM:', payload);
+  
+  // if (payload.startsWith('register')) throw new Error('Invalid nostr request');
 
-  console.log('nostrPrivateKey ddddddddd', nostrPrivateKey, 'decryptedPrivateKey', decryptedPrivateKey)
-  // TODO: decrypt nip04 encrypted private key
-  const payload = await decrypt(nostrPrivateKey.slice(2), nostrRequest.pubkey, nostrRequest.content);
-  // console.log('nostrRequest', nostrRequest)
-  // console.log('payload', payload)
+  // Generate a random 32 byte entropy on each node
+  const random = crypto.getRandomValues(new Uint8Array(32));
+  const entropies: string[] = await Lit.Actions.broadcastAndCollect({
+    name: 'entropies',
+    value: ethers.utils.hexlify(random),
+  });
 
-  // console.log(decryptedPrivateKey, 'decrypteddecrypted')
+  // BIP39 mnemonic
+  const entropyHex = entropies.sort().reduce((acc, s, idx) => acc + s.slice(2), '0x');
+  const entropy = hkdf(sha256, ethers.utils.arrayify(entropyHex), new Uint8Array(32), 'entropy', 32);
+  const mnemonic = ethers.utils.entropyToMnemonic(entropy);
 
-  // https://github.com/LIT-Protocol/js-sdk/blob/d30de12744552d41d1b1d709f737ae8a90d1ce3a/packages/wrapped-keys/src/lib/litActions/solana/src/generateEncryptedSolanaPrivateKey.js#L25
-  const resp = await Lit.Actions.runOnce(
+  // BIP39 seed
+  const password = '';
+  const seed = ethers.utils.mnemonicToSeed(mnemonic, password);
+
+  // BIP32 root Key
+  const rootHDNode = ethers.utils.HDNode.fromSeed(seed);
+  const { extendedKey: bip32RootKey } = rootHDNode;
+
+  // Safety check ensure all nodes agree on same BIP32 Root Key
+  const rootKeyIds: string[] = await Lit.Actions.broadcastAndCollect({
+    name: 'rootKeyIds',
+    value: ethers.utils.sha256(bip32RootKey),
+  });
+  if (!rootKeyIds.every((id) => id === rootKeyIds[0])) throw new Error(`Node synchronization failed: Expected all responses to be "${rootKeyIds[0]}", but got variations: [${rootKeyIds.join(', ')}]`);
+
+  // BIP32 Derivation Path for Ethereum network
+  const networkPath = "m/44'/60'/0'/0";
+
+  // BIP32 Extended Private Key
+  const networkHDNode = rootHDNode.derivePath(networkPath);
+  const { extendedKey: bip32ExtendedPrivateKey } = networkHDNode
+
+  // Generate a few accounts
+  const accounts = [0].map((num) => {
+    const path = `${networkPath}/${num}`;
+    const hd = rootHDNode.derivePath(path);
+    const wallet = new ethers.Wallet(hd);
+    const { address, publicKey: publicKeyLong } = wallet;
+    return [path, {
+      address,
+      publicKey: hd.publicKey,
+      publicKeyLong,
+    }] as const
+  });
+
+  accessControlConditions ||= {
+    contractAddress: '',
+    standardContractType: '',
+    chain: CHAIN_ETHEREUM,
+    method: '',
+    parameters: [':userAddress'],
+    returnValueTest: {
+      comparator: '=',
+      value: pkpAddress, // @JsParams pkpAddress
+    },
+  };
+
+  const LIT_PREFIX = 'lit_';
+
+  const userKeystore = await Lit.Actions.runOnce(
     { waitForResponse: true, name: 'encryptedPrivateKey' },
     async () => {
-      
-        const utf8Encode = new TextEncoder();
-        
-        const { ciphertext: ciphertextRootKey, dataToEncryptHash: dataToEncryptHashRootKey } = await Lit.Actions.encrypt({
-          accessControlConditions,
-          to_encrypt: utf8Encode.encode(bip32RootKey) // Data to encrypt (encoded private key)
-        });
-      
-        // TODO: Store this data to ceramics 
-        const userSecret = JSON.stringify({
-          encryptedBip32RootKey: {
-            ciphertext: ciphertextRootKey,
-            dataToEncryptHash: dataToEncryptHashRootKey
-          },
-          accounts,
-          // npub,
-        })
+      let utf8Encode = new TextEncoder();
 
-        return userSecret
+      const { ciphertext: seedCiphertext, dataToEncryptHash: seedDataToEncryptHash } = await Lit.Actions.encrypt({
+        accessControlConditions,
+        to_encrypt: utf8Encode.encode(LIT_PREFIX + seed),
+      });
+
+      const { ciphertext: entropyCiphertext, dataToEncryptHash: entropyDataToEncryptHash } = await Lit.Actions.encrypt({
+        accessControlConditions,
+        to_encrypt: utf8Encode.encode(LIT_PREFIX + entropy),
+      });
+
+      return JSON.stringify({
+        pubkey: nostrRequest.pubkey,
+        seedCiphertext,
+        seedDataToEncryptHash,
+        entropyCiphertext,
+        entropyDataToEncryptHash,
+      });
     }
-  )
-  
-  const toSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(resp)));
+  );
 
+  // Signature for Encrypted privatekey
+  const toSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(userKeystore)));
   const signature = await Lit.Actions.signAndCombineEcdsa({
     toSign,
     publicKey, // @JsParams publicKey
     sigName: 'sigSecretKey',
   });
   
-  // const jsonSignature = JSON.parse(signature);
-  // jsonSignature.r = "0x" + jsonSignature.r.substring(2);
-  // jsonSignature.s = "0x" + jsonSignature.s;
-  // // const hexSignature = ethers.utils.joinSignature(jsonSignature);
+  const keystore = JSON.stringify(userKeystore)
+  // Store private data
+  // const { error } = await supabase.from('user_key').insert({
+  //   keystore,
+  //   signature,
+  //   pubkey: keystore.pubkey
+  // })
 
-  // const signedTx = ethers.utils.serializeTransaction(
-  //   unsignedTransaction,
-  //   hexSignature
-  // );
+  // if (!error) throw error
+  console.log(keystore, 'keystore')
+  // await fetch(url, {
+  //   method: "POST", // Specify the request method
+  //   headers: {
+  //     "Content-Type": "application/json" // Set the content type to JSON
+  //   },
+  //   body: JSON.stringify({ userKeystore, sig }) // Convert the data object to a JSON string
+  // })
 
-  // const recoveredAddress = ethers.utils.recoverAddress(toSign, hexSignature);
-  // console.log("HexSignature:", hexSignature);
-
-// console.log(signedTx, 'signedTx')
-  const response = JSON.stringify({
-    // entropy: ethers.utils.hexlify(entropy),
-    // bip39Seed: ethers.utils.hexlify(seed),
-    // bip32RootKey,
-    // bip32ExtendedPrivateKey,
-    accounts,
-  })
-
-  Lit.Actions.setResponse({ response });
-  } catch (error) { 
-    Lit.Actions.setResponse({ response: error.message });
+  // Create a nostr EncryptedDirectMessage
+  const nostrReplyMessage = accounts.reduce((acc, [path, account]) => {
+    if (path.startsWith("m/44'/60'/")) {
+      return acc + `Ethereum account [${path}]: ${account.address}\n`
+    } else {
+      return acc + `BIP32 address [${path}]: ${account.address}\n`
+    }
+  }, 'You have been registered on the Lit Protocol!\n\n');
+  const nostrReply = {
+    kind: EncryptedDirectMessage,
+    tags: [
+      ['p', nostrRequest.pubkey],
+    ],
+    created_at: Math.floor(Date.now() / 1000),
+    content: nip04Encrypt(nostrPrivateKey, nostrRequest.pubkey, nostrReplyMessage),
   }
-};
 
-go();
+    Lit.Actions.setResponse({
+      response: JSON.stringify(finalizeEvent(nostrReply, nostrPrivateKey)),
+    });
+  } catch (error) {
+    Lit.Actions.setResponse({
+      response: error.message,
+    });
+  } finally {
+    // supabase disconnect
+  }
+})();

@@ -13,8 +13,6 @@ import { EncryptedDirectMessage, Metadata, RelayList } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
 import type { SubCloser } from 'nostr-tools/abstract-pool'
 
-
-
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import {
@@ -26,10 +24,12 @@ import {
 } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
 import * as ethers from 'ethers'
-// import { api } from '@lit-protocol/wrapped-keys'
+import { api } from '@lit-protocol/wrapped-keys'
+
+import * as fs from 'fs'
 
 import { createClient } from '@supabase/supabase-js'
-import { api } from '@nakama/social-keys'
+// import { api } from '@nakama/social-keys'
 
 // const supabaseUrl = 'https://kmrgcdhoqxftcrfdaclr.supabase.co'
 // const supabaseKey = process.env.SUPABASE_KEY
@@ -42,7 +42,12 @@ const GENERATE_WALLET_IPFS_ID = process.env.LIT_GENERATE_ADDRESS_IPFS
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 const WRAPPED_KEY_ID = process.env.RELAY_BOT_WRAPPED_KEY_ID
 
-const supabase = createClient('https://kmrgcdhoqxftcrfdaclr.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcmdjZGhvcXhmdGNyZmRhY2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNDgzOTEsImV4cCI6MjA0MDkyNDM5MX0.1_1UlLb2Xcw0dLypYJracpZOjKp2jc374pUhRp3mHPQ')
+const supabase = createClient(
+  'https://kmrgcdhoqxftcrfdaclr.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcmdjZGhvcXhmdGNyZmRhY2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNDgzOTEsImV4cCI6MjA0MDkyNDM5MX0.1_1UlLb2Xcw0dLypYJracpZOjKp2jc374pUhRp3mHPQ',
+)
+
+const litActionCode = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8');
 
 export interface PartialRelayListEvent extends EventTemplate {
   kind: typeof RelayList
@@ -64,10 +69,10 @@ export async function startService({
 
   if (!nostrSeckey || !nostrPubkey) throw new Error('No nostr key pair generated')
 
-  const { data, error } = await supabase
-  .from('user_key')
-  .select()
+  const { data, error } = await supabase.from('user_key').select()
 
+  // console.log('read litActionCode', litActionCode)
+  console.log('checking supabase', data)
   console.info('npub:', npubEncode(nostrPubkey))
 
   const relays = await loadNostrRelayList(nostrPubkey, nostrSeckey, { pool })
@@ -392,9 +397,9 @@ export async function generateWrappedKey(nostrNpub: string) {
     )
     return response
   } catch (error) {
-    console.error
+    console.error(error)
   } finally {
-    litNodeClient!.disconnect()
+    litNodeClient?.disconnect()
   }
 }
 
@@ -451,7 +456,8 @@ export async function generateUserWallet(event: EventTemplate) {
 
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
-      ipfsId: GENERATE_WALLET_IPFS_ID,
+      // ipfsId: GENERATE_WALLET_IPFS_ID,
+      code: litActionCode,
       jsParams: {
         publicKey: PKP_PUBLIC_KEY,
         ciphertext:
@@ -461,6 +467,11 @@ export async function generateUserWallet(event: EventTemplate) {
         pkpAddress,
         accessControlConditions,
         nostrRequest: event,
+        supabase: {
+          url: 'https://kmrgcdhoqxftcrfdaclr.supabase.co',
+          anonKey:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcmdjZGhvcXhmdGNyZmRhY2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNDgzOTEsImV4cCI6MjA0MDkyNDM5MX0.1_1UlLb2Xcw0dLypYJracpZOjKp2jc374pUhRp3mHPQ',
+        },
       },
     })
 
