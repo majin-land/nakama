@@ -1,16 +1,16 @@
 // @ts-nocheck
 
-import { ethers } from 'ethers';
+import * as ethers from 'ethers'
 
-import { log } from '@lit-protocol/misc';
+import { log } from '@lit-protocol/misc'
 import {
   AccsDefaultParams,
   AuthSig,
   SessionKeySignedMessage,
   SessionSigsMap,
-} from '@lit-protocol/types';
+} from '@lit-protocol/types'
 
-import { CHAIN_ETHEREUM } from './constants';
+import { CHAIN_ETHEREUM } from './constants'
 
 /**
  *
@@ -21,18 +21,16 @@ import { CHAIN_ETHEREUM } from './constants';
  * @returns { AuthSig } - The first SessionSig from the map
  */
 export function getFirstSessionSig(pkpSessionSigs: SessionSigsMap): AuthSig {
-  const sessionSigsEntries = Object.entries(pkpSessionSigs);
+  const sessionSigsEntries = Object.entries(pkpSessionSigs)
 
   if (sessionSigsEntries.length === 0) {
-    throw new Error(
-      `Invalid pkpSessionSigs, length zero: ${JSON.stringify(pkpSessionSigs)}`
-    );
+    throw new Error(`Invalid pkpSessionSigs, length zero: ${JSON.stringify(pkpSessionSigs)}`)
   }
 
-  const [[, sessionSig]] = sessionSigsEntries;
-  log(`Session Sig being used: ${JSON.stringify(sessionSig)}`);
+  const [[, sessionSig]] = sessionSigsEntries
+  log(`Session Sig being used: ${JSON.stringify(sessionSig)}`)
 
-  return sessionSig;
+  return sessionSig
 }
 
 /**
@@ -44,30 +42,24 @@ export function getFirstSessionSig(pkpSessionSigs: SessionSigsMap): AuthSig {
  * @returns { string } - The wallet address that signed the capabilites AuthSig (BLS)
  */
 export function getPkpAddressFromSessionSig(pkpSessionSig: AuthSig): string {
-  const sessionSignedMessage: SessionKeySignedMessage = JSON.parse(
-    pkpSessionSig.signedMessage
-  );
+  const sessionSignedMessage: SessionKeySignedMessage = JSON.parse(pkpSessionSig.signedMessage)
 
-  const capabilities = sessionSignedMessage.capabilities;
+  const capabilities = sessionSignedMessage.capabilities
 
   if (!capabilities || capabilities.length === 0) {
-    throw new Error(
-      `Capabilities in the session's signedMessage is empty, but required.`
-    );
+    throw new Error(`Capabilities in the session's signedMessage is empty, but required.`)
   }
 
-  const delegationAuthSig = capabilities.find(({ algo }) => algo === 'LIT_BLS');
+  const delegationAuthSig = capabilities.find(({ algo }) => algo === 'LIT_BLS')
 
   if (!delegationAuthSig) {
-    throw new Error(
-      'SessionSig is not from a PKP; no LIT_BLS capabilities found'
-    );
+    throw new Error('SessionSig is not from a PKP; no LIT_BLS capabilities found')
   }
 
-  const pkpAddress = delegationAuthSig.address;
-  log(`pkpAddress to permit decryption: ${pkpAddress}`);
+  const pkpAddress = delegationAuthSig.address
+  log(`pkpAddress to permit decryption: ${pkpAddress}`)
 
-  return pkpAddress;
+  return pkpAddress
 }
 
 /**
@@ -78,14 +70,10 @@ export function getPkpAddressFromSessionSig(pkpSessionSig: AuthSig): string {
  *
  * @returns { AccsDefaultParams } - The access control condition that only allows the PKP address to decrypt
  */
-export function getPkpAccessControlCondition(
-  pkpAddress: string
-): AccsDefaultParams {
+export function getPkpAccessControlCondition(pkpAddress: string): AccsDefaultParams {
   if (!ethers.isAddress(pkpAddress)) {
     // if (!ethers.utils.isAddress(pkpAddress)) {
-    throw new Error(
-      `pkpAddress is not a valid Ethereum Address: ${pkpAddress}`
-    );
+    throw new Error(`pkpAddress is not a valid Ethereum Address: ${pkpAddress}`)
   }
 
   return {
@@ -98,5 +86,5 @@ export function getPkpAccessControlCondition(
       comparator: '=',
       value: pkpAddress,
     },
-  };
+  }
 }

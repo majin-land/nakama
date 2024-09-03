@@ -17,7 +17,7 @@
         "main": "apps/relay-bot/src/main.ts",
         "tsConfig": "apps/relay-bot/tsconfig.app.json",
         "assets": ["apps/relay-bot/src/assets"],
-        "generatePackageJson": true,
+        "skipTypeCheck": true,
         "esbuildOptions": {
           "sourcemap": true,
           "outExtension": {

@@ -12,7 +12,8 @@
         "outputPath": "dist/libs/social-keys",
         "main": "libs/social-keys/src/index.ts",
         "tsConfig": "libs/social-keys/tsconfig.lib.json",
-        "assets": ["libs/social-keys/*.md"]
+        "assets": ["libs/social-keys/*.md"],
+        "updateBuildableProjectDepsInPackageJson": true
       }
     }
   }
