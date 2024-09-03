@@ -24,15 +24,15 @@ import { sha256 } from "https://esm.sh/@noble/hashes@1.4.0/sha256.js";
 
 const LIT_PREFIX = 'lit_';
 
-function removeSaltFromDecryptedKey(decryptedPrivateKey) {
-  if (!decryptedPrivateKey.startsWith(LIT_PREFIX)) {
-    throw new Error(
-      `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`
-    );
-  }
+// const removeSaltFromDecryptedKey = (_decryptedPrivateKey: string) => {
+//   if (!_decryptedPrivateKey.startsWith(LIT_PREFIX)) {
+//     throw new Error(
+//       `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`
+//     );
+//   }
 
-  return decryptedPrivateKey.slice(LIT_PREFIX.length);
-}
+//   return _decryptedPrivateKey.slice(LIT_PREFIX.length);
+// }
 
 const go = async () => {
 
@@ -114,12 +114,23 @@ const go = async () => {
   let nostrPrivateKey;
   try {
       // TODO: add salt
-    nostrPrivateKey = removeSaltFromDecryptedKey(decryptedPrivateKey);
+    // if (!decryptedPrivateKey.startsWith(LIT_PREFIX)) {
+    // NOTE: removeSaltFromDecryptedKey and this code cause an error
+    // There was an error getting the signing shares from the nodes
+    //
+    //   throw new Error(
+    //     `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`
+    //   );
+    // }
+    nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length);
     // nostrPrivateKey = decryptedPrivateKey;
   } catch (err) {
     Lit.Actions.setResponse({ response: err.message });
     return;
   }
+
+  console.log(nostrPrivateKey, 'nostrPrivateKey')
+
 
   // console.log('nostrPrivateKey ddddddddd', nostrPrivateKey, 'decryptedPrivateKey')
   // const payload = await decrypt(nostrPrivateKey.slice(2), nostrRequest.pubkey, nostrRequest.content);
@@ -154,18 +165,32 @@ const go = async () => {
     }
   )
   
-  // const toSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(keystore)));
-  // console.log()
+  // const toSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode('keystore')));
+  // // console.log(JSON.stringify(toSign), 'jjjjjjjjjjjjjjjjjjjjjjjj')
+  // // const toSign = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(keystore)));
+  // const signature = await Lit.Actions.signAndCombineEcdsa({
+  // // const signature = await Lit.Actions.signEcdsa({
   //   toSign,
-  //   publicKey, // @JsParams publicKey
-  //   sigName: 'sigSecretKey',
+  //   publicKey,
+  //   sigName: 'sigSecretKeyl',
   // });
-  
+
+  const dataToSign = ethers.utils.arrayify(ethers.utils.keccak256(new TextEncoder().encode(keystore)));
+
+  const sig = await Lit.Actions.signAndCombineEcdsa({
+    toSign: dataToSign,
+    publicKey,
+    sigName: 'sigSecretKey',
+  });
+
+  console.log(JSON.stringify(sig), 'sig')
 
   // const jsonSignature = JSON.parse(signature);
   // jsonSignature.r = "0x" + jsonSignature.r.substring(2);
   // jsonSignature.s = "0x" + jsonSignature.s;
   // const hexSignature = ethers.utils.joinSignature(jsonSignature);
+
+  // console.log('hexSignature', hexSignature)
   await supabaseClient.auth.signInWithPassword({
     email: supabase.email,
     password: supabase.password,
@@ -186,6 +211,8 @@ const go = async () => {
 
   // const recoveredAddress = ethers.utils.recoverAddress(toSign, hexSignature);
   // console.log("HexSignature:", hexSignature);
+
+  
 
 // console.log(signedTx, 'signedTx')
   const response = JSON.stringify({
