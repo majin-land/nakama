@@ -41,6 +41,11 @@ const GENERATE_WALLET_IPFS_ID = process.env.LIT_GENERATE_ADDRESS_IPFS
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 const WRAPPED_KEY_ID = process.env.RELAY_BOT_WRAPPED_KEY_ID
 
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const SUPABASE_ADMIN_EMAIL = process.env.SUPABASE_ADMIN_EMAIL
+const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
+
 const litActionCode = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8')
 
 export interface PartialRelayListEvent extends EventTemplate {
@@ -453,16 +458,14 @@ export async function generateUserWallet(event: EventTemplate) {
         ciphertext:
           'jAObGwunr9xi4YbNdJ6vAHtPFJmNSfyBu445KT8jJ+Z51TGJDJ60eeXd43wa+i5xBP0hseZ0C6O2Xi36vhIP0AdCaIvqNb4/A0wusdasgq5HOLVaGBpCIOZfK3Tb9bPYhxE/9w43aDLb+O+5U9ybFNZ7/LGLrIFKdjMFZe1/2PDzdnBNYASkn5NBdDgMSJqV9GcUwNAaFkgC',
         dataToEncryptHash: 'fba3dd2b93d7e60ba3baa762c43066a09ec6991624e23ef0a5c600d63c3d24d9',
-        // pkpAddress: '0xd3b3e6275076F9c7D300667D4F8B052D6194fD99',
         pkpAddress,
         accessControlConditions,
         nostrRequest: event,
         supabase: {
-          url: 'https://wdsoobygxzbrtkckyrxy.supabase.co',
-          serviceRole:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indkc29vYnlneHpicnRrY2t5cnh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNjc2NzQsImV4cCI6MjA0MDk0MzY3NH0.u2LV8QviEWd3Q4PCHb4eDak8w5peHX1wMdP4OHioKBM',
-          email: 'admin@majin.land',
-          password: '1234567890',
+          url: SUPABASE_URL,
+          serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+          email: SUPABASE_ADMIN_EMAIL,
+          password: SUPABASE_ADMIN_PASSWORD,
         },
       },
     })
