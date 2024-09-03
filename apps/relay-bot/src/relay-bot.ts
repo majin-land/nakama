@@ -28,7 +28,6 @@ import { api } from '@lit-protocol/wrapped-keys'
 
 import * as fs from 'fs'
 
-import { createClient } from '@supabase/supabase-js'
 // import { api } from '@nakama/social-keys'
 
 // const supabaseUrl = 'https://kmrgcdhoqxftcrfdaclr.supabase.co'
@@ -42,12 +41,7 @@ const GENERATE_WALLET_IPFS_ID = process.env.LIT_GENERATE_ADDRESS_IPFS
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 const WRAPPED_KEY_ID = process.env.RELAY_BOT_WRAPPED_KEY_ID
 
-const supabase = createClient(
-  'https://kmrgcdhoqxftcrfdaclr.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcmdjZGhvcXhmdGNyZmRhY2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNDgzOTEsImV4cCI6MjA0MDkyNDM5MX0.1_1UlLb2Xcw0dLypYJracpZOjKp2jc374pUhRp3mHPQ',
-)
-
-const litActionCode = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8');
+const litActionCode = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8')
 
 export interface PartialRelayListEvent extends EventTemplate {
   kind: typeof RelayList
@@ -69,10 +63,6 @@ export async function startService({
 
   if (!nostrSeckey || !nostrPubkey) throw new Error('No nostr key pair generated')
 
-  const { data, error } = await supabase.from('user_key').select()
-
-  // console.log('read litActionCode', litActionCode)
-  console.log('checking supabase', data)
   console.info('npub:', npubEncode(nostrPubkey))
 
   const relays = await loadNostrRelayList(nostrPubkey, nostrSeckey, { pool })
@@ -351,7 +341,7 @@ export async function getWrappedKey() {
   } catch (error) {
     console.error
   } finally {
-    litNodeClient!.disconnect()
+    litNodeClient?.disconnect()
   }
 }
 
@@ -468,9 +458,11 @@ export async function generateUserWallet(event: EventTemplate) {
         accessControlConditions,
         nostrRequest: event,
         supabase: {
-          url: 'https://kmrgcdhoqxftcrfdaclr.supabase.co',
-          anonKey:
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcmdjZGhvcXhmdGNyZmRhY2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNDgzOTEsImV4cCI6MjA0MDkyNDM5MX0.1_1UlLb2Xcw0dLypYJracpZOjKp2jc374pUhRp3mHPQ',
+          url: 'https://wdsoobygxzbrtkckyrxy.supabase.co',
+          serviceRole:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indkc29vYnlneHpicnRrY2t5cnh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUzNjc2NzQsImV4cCI6MjA0MDk0MzY3NH0.u2LV8QviEWd3Q4PCHb4eDak8w5peHX1wMdP4OHioKBM',
+          email: 'admin@majin.land',
+          password: '1234567890',
         },
       },
     })
