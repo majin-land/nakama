@@ -1,9 +1,14 @@
 import { Box } from '@mui/material'
-import React from 'react'
+import React, { useContext } from 'react'
+
+import { NavContext } from '@/context/nav'
+
 import ChatList from '../chat-list'
 import ChatContent from '../chat-content'
 
 function ChatBoddy() {
+  const { nav } = useContext(NavContext)
+
   return (
     <Box
       sx={{
@@ -14,9 +19,7 @@ function ChatBoddy() {
         display: 'flex',
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: '350px' }}>
-        <ChatList />
-      </Box>
+      <Box sx={{ width: '100%', maxWidth: '350px' }}>{nav === 'chats' && <ChatList />}</Box>
       <ChatContent />
     </Box>
   )

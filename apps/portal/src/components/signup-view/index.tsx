@@ -9,8 +9,8 @@ import useAuthenticate from '@/hooks/useAuthenticate'
 import useSession from '@/hooks/useSession'
 import useAccounts from '@/hooks/useAccounts'
 import SignupMethods from '@/components/signup-method'
-import Dashboard from '@/components/dashboard'
 import Loading from '@/components/loading'
+import Main from '@/components/main'
 
 export default function SignupView() {
   const redirectUri = ORIGIN
@@ -107,10 +107,11 @@ export default function SignupView() {
 
   if (currentAccount && sessionSigs) {
     return (
-      <Dashboard
-        currentAccount={currentAccount}
-        sessionSigs={sessionSigs}
-      />
+      // <Dashboard
+      //   currentAccount={currentAccount}
+      //   sessionSigs={sessionSigs}
+      // />
+      <Main />
     )
   } else {
     return (
