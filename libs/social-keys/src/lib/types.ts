@@ -250,3 +250,7 @@ export interface SignTransactionParamsSupportedSolana
 export type SignTransactionWithEncryptedKeyParams =
   | SignTransactionParamsSupportedEvm
   | SignTransactionParamsSupportedSolana;
+
+export type ClaimKeyParams = BaseApiParams & {
+  pkpPublicKey: string;
+};
