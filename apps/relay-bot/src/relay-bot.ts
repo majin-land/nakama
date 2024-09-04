@@ -24,8 +24,8 @@ import {
 } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
 import * as ethers from 'ethers'
-import { api } from '@lit-protocol/wrapped-keys'
-
+// import { api } from '@lit-protocol/wrapped-keys'
+import { api, getPkpAccessControlCondition, getFirstSessionSig } from '@nakama/social-keys'
 import * as fs from 'fs'
 
 // import { api } from '@nakama/social-keys'
@@ -34,7 +34,7 @@ import * as fs from 'fs'
 // const supabaseKey = process.env.SUPABASE_KEY
 // const supabase = createClient(supabaseUrl, supabaseKey)
 
-const { generatePrivateKey, getEncryptedKey } = api
+const { generatePrivateKey, getEncryptedKey, exportPrivateKey, fetchPrivateKey } = api
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 const GENERATE_WALLET_IPFS_ID = process.env.LIT_GENERATE_ADDRESS_IPFS
@@ -47,6 +47,7 @@ const SUPABASE_ADMIN_EMAIL = process.env.SUPABASE_ADMIN_EMAIL
 const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
 
 const litActionCode = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8')
+// const litActionCode = fs.readFileSync('./apps/lit-action/dist/sign-nostr-metadata.js', 'utf8')
 const litActionCodeSendTransaction = fs.readFileSync(
   './apps/lit-action/dist/sign-transaction.js',
   'utf8',
@@ -459,17 +460,46 @@ export async function generateUserWallet(event: EventTemplate) {
       },
     ]
 
+    const sessionSig = getFirstSessionSig(sessionSigs)
+
+    const storedKeyMetadata = await fetchPrivateKey({
+      id: WRAPPED_KEY_ID,
+      sessionSig: sessionSig,
+      litNetwork: litNodeClient.config.litNetwork,
+    });
+  
+    const allowPkpAddressToDecrypt = getPkpAccessControlCondition(
+      storedKeyMetadata.pkpAddress
+    );
+
+  // const storedKeyMetadata = await fetchPrivateKey({
+  //   id,
+  //   sessionSig,
+  //   litNetwork: litNodeClient.config.litNetwork,
+  // });
+
+    console.log(storedKeyMetadata, 'storedKeyMetadataxxxxxxx', allowPkpAddressToDecrypt)
+
+    const exportedPrivateKey = await exportPrivateKey({
+      litNodeClient,
+      network: 'evm',
+      pkpSessionSigs: sessionSigs,
+      id: WRAPPED_KEY_ID,
+    })
+
+    console.log(exportedPrivateKey, 'exportedPrivateKey')
+
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
       // ipfsId: GENERATE_WALLET_IPFS_ID,
       code: litActionCode,
       jsParams: {
         publicKey: PKP_PUBLIC_KEY,
-        ciphertext:
-          'jAObGwunr9xi4YbNdJ6vAHtPFJmNSfyBu445KT8jJ+Z51TGJDJ60eeXd43wa+i5xBP0hseZ0C6O2Xi36vhIP0AdCaIvqNb4/A0wusdasgq5HOLVaGBpCIOZfK3Tb9bPYhxE/9w43aDLb+O+5U9ybFNZ7/LGLrIFKdjMFZe1/2PDzdnBNYASkn5NBdDgMSJqV9GcUwNAaFkgC',
-        dataToEncryptHash: 'fba3dd2b93d7e60ba3baa762c43066a09ec6991624e23ef0a5c600d63c3d24d9',
+        ciphertext: storedKeyMetadata.ciphertext,
+        dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
         pkpAddress,
-        accessControlConditions,
+        accessControlConditions: [allowPkpAddressToDecrypt],
+        unsignedMetadata: 'hello',
         nostrRequest: event,
         supabase: {
           url: SUPABASE_URL,

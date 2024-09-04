@@ -1,12 +1,14 @@
 import * as ethers from 'ethers'
-import {
-  SimplePool,
-} from 'nostr-tools'
+import { SimplePool } from 'nostr-tools'
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
-import { api, SignMetadataWithEncryptedKeyParams, getPkpAccessControlCondition } from '@nakama/social-keys'
+import {
+  api,
+  SignMetadataWithEncryptedKeyParams,
+  getPkpAccessControlCondition,
+} from '@nakama/social-keys'
 
 import { loadNostrRelayList } from './utils'
 
@@ -17,11 +19,7 @@ const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 
 const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
 
-export const setup = async (
-  pkpPublicKey: string,
-  memo: string, 
-  broadcastTransaction: boolean,
-) => {
+export const action = async (pkpPublicKey: string, memo: string, broadcastTransaction: boolean) => {
   let litNodeClient: LitNodeClient
 
   try {
@@ -92,7 +90,7 @@ export const setup = async (
       pkpSessionSigs,
       id: wrappedKey.id,
       litNodeClient,
-    });
+    })
     console.log(`✅ Got Stored Key metadata`)
 
     const accessControlCondition = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
@@ -101,12 +99,12 @@ export const setup = async (
   } catch (error) {
     console.error(error)
   } finally {
-    litNodeClient!.disconnect()
+    litNodeClient?.disconnect()
   }
 }
 
 export default async function setup() {
   const pool = new SimplePool()
-  const signedMetadata = await generateWrappedKeyAndSignMetadata(PKP_KEY, 'nostr-bot', true)
-  console.log(signedMetadata,'Metadata Signed!')
+  const signedMetadata = await action(PKP_KEY, 'nostr-bot', true)
+  console.log(signedMetadata, 'Metadata Signed!')
 }

@@ -19,13 +19,17 @@ import {
   KEYTYPE_ED25519,
 } from './lib/constants'
 
-import { getPkpAccessControlCondition } from './lib/utils'
+import { getFirstSessionSig, getPkpAccessControlCondition } from './lib/utils'
 
 import {
   getChainForNetwork,
   getGasParamsForNetwork,
   getBaseTransactionForNetwork,
 } from './lib/wrapper-keys/utils'
+
+import {
+fetchPrivateKey
+} from './lib/service-client'
 
 import type { SupportedNetworks } from './lib/service-client/types'
 import type {
@@ -74,6 +78,7 @@ export const api = {
   signTransactionWithEncryptedKey,
   storeEncryptedKey,
   signMetadataWithEncryptedKey,
+  fetchPrivateKey,
 }
 
 export {
@@ -105,4 +110,5 @@ export {
   NostrMetadata,
   SignMetadataWithEncryptedKeyParams,
   getPkpAccessControlCondition,
+  getFirstSessionSig,
 }
