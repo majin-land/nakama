@@ -6,18 +6,18 @@ import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
-import { api, SignMetadataWithEncryptedKeyParams } from '@nakama/social-keys'
+import { api, SignMetadataWithEncryptedKeyParams, getPkpAccessControlCondition } from '@nakama/social-keys'
 
 import { loadNostrRelayList } from './utils'
 
-const { generateNostrPrivateKey, signMetadataWithEncryptedKey } = api
+const { generateNostrPrivateKey, signMetadataWithEncryptedKey, getEncryptedKey } = api
 
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 
 const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
 
-export const generateWrappedKeyAndSignMetadata = async (
+export const setup = async (
   pkpPublicKey: string,
   memo: string, 
   broadcastTransaction: boolean,
@@ -86,6 +86,17 @@ export const generateWrappedKeyAndSignMetadata = async (
       litNodeClient,
     } as unknown as SignMetadataWithEncryptedKeyParams)
     console.log('✅ Signed metadata')
+
+    console.log('🔄 Getting Stored Key metadata...')
+    const storedKeyMetadata = await getEncryptedKey({
+      pkpSessionSigs,
+      id: wrappedKey.id,
+      litNodeClient,
+    });
+    console.log(`✅ Got Stored Key metadata`)
+
+    const accessControlCondition = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
+
     return verifiedEvent
   } catch (error) {
     console.error(error)
@@ -98,7 +109,4 @@ export default async function setup() {
   const pool = new SimplePool()
   const signedMetadata = await generateWrappedKeyAndSignMetadata(PKP_KEY, 'nostr-bot', true)
   console.log(signedMetadata,'Metadata Signed!')
-
-  // publish metadata to nostr relay
-
 }
