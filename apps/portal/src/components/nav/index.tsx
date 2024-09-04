@@ -3,7 +3,6 @@ import { Box, ListItemIcon, ListItemText, MenuItem, MenuList } from '@mui/materi
 import ChatIcon from '@mui/icons-material/Chat'
 import GroupsIcon from '@mui/icons-material/Groups'
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
-import ExploreIcon from '@mui/icons-material/Explore'
 import SettingsIcon from '@mui/icons-material/Settings'
 import PersonIcon from '@mui/icons-material/Person'
 
@@ -23,13 +22,6 @@ export default function Nav() {
             <GroupsIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Groups</ListItemText>
-        </MenuItem>
-
-        <MenuItem>
-          <ListItemIcon>
-            <ExploreIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Update</ListItemText>
         </MenuItem>
 
         <MenuItem>

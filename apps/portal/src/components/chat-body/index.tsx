@@ -14,7 +14,9 @@ function ChatBoddy() {
         display: 'flex',
       }}
     >
-      <ChatList />
+      <Box sx={{ width: '100%', maxWidth: '350px' }}>
+        <ChatList />
+      </Box>
       <ChatContent />
     </Box>
   )
