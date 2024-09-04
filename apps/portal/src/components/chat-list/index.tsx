@@ -31,7 +31,7 @@ const ChatList = () => {
         />
         <SearchIcon />
       </Box>
-      <Box sx={{ marginTop: '30px', overflow: 'auto', maxHeight: 'calc(100vh - calc(100vh / 2))' }}>
+      <Box sx={{ marginTop: '15px', overflow: 'auto', maxHeight: 'calc(100vh - calc(100vh / 2))' }}>
         <ChatListItem />
       </Box>
     </Box>

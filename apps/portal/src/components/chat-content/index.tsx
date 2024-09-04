@@ -2,6 +2,59 @@ import { Avatar, Box, IconButton, InputBase, Typography } from '@mui/material'
 import React from 'react'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import SendIcon from '@mui/icons-material/Send'
+import ChatItem from '../chat-list/chat-item'
+
+const chatItms = [
+  {
+    key: 1,
+    image:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTA78Na63ws7B7EAWYgTr9BxhX_Z8oLa1nvOA&usqp=CAU',
+    type: '',
+    msg: 'Hi Tim, How are you?',
+  },
+  {
+    key: 2,
+    image:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTA78Na63ws7B7EAWYgTr9BxhX_Z8oLa1nvOA&usqp=CAU',
+    type: 'other',
+    msg: 'I am fine.',
+  },
+  {
+    key: 3,
+    image:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTA78Na63ws7B7EAWYgTr9BxhX_Z8oLa1nvOA&usqp=CAU',
+    type: 'other',
+    msg: 'What about you?',
+  },
+  {
+    key: 4,
+    image:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTA78Na63ws7B7EAWYgTr9BxhX_Z8oLa1nvOA&usqp=CAU',
+    type: '',
+    msg: 'Awesome these days.',
+  },
+  {
+    key: 5,
+    image:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTA78Na63ws7B7EAWYgTr9BxhX_Z8oLa1nvOA&usqp=CAU',
+    type: 'other',
+    msg: "Finally. What's the plan?",
+  },
+  {
+    key: 6,
+    image:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTA78Na63ws7B7EAWYgTr9BxhX_Z8oLa1nvOA&usqp=CAU',
+    type: '',
+    msg: 'what plan mate?',
+  },
+  {
+    key: 7,
+    image:
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTA78Na63ws7B7EAWYgTr9BxhX_Z8oLa1nvOA&usqp=CAU',
+    type: 'other',
+    msg: "I'm taliking about the tutorial",
+  },
+]
 
 const ChatContent = () => {
   return (
@@ -34,17 +87,13 @@ const ChatContent = () => {
           <MoreVertIcon />
         </IconButton>
       </Box>
-      <Box sx={{ maxHeight: 'calc(100vh - calc(100vh / 2))', overflow: 'auto', height: '100%' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'flex-end',
-            marginBottom: '15px',
-          }}
-        >
-          Test
-        </Box>
+      <Box sx={{ maxHeight: 'calc(100vh - calc(100vh / 2.5))', overflow: 'auto', height: '100%' }}>
+        {chatItms.map((item, index) => (
+          <ChatItem
+            key={index}
+            item={item}
+          />
+        ))}
       </Box>
       <Box sx={{ paddingTop: '30px' }}>
         <Box
