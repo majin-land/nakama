@@ -71,8 +71,8 @@ export function getPkpAddressFromSessionSig(pkpSessionSig: AuthSig): string {
  * @returns { AccsDefaultParams } - The access control condition that only allows the PKP address to decrypt
  */
 export function getPkpAccessControlCondition(pkpAddress: string): AccsDefaultParams {
-  if (!ethers.isAddress(pkpAddress)) {
-    // if (!ethers.utils.isAddress(pkpAddress)) {
+  // if (!ethers.isAddress(pkpAddress)) {
+  if (!ethers.utils.isAddress(pkpAddress)) {
     throw new Error(`pkpAddress is not a valid Ethereum Address: ${pkpAddress}`)
   }
 

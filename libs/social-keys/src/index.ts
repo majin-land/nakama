@@ -3,10 +3,12 @@ import {
   getEncryptedKey,
   exportPrivateKey,
   generatePrivateKey,
+  generateNostrPrivateKey,
   importPrivateKey,
   signTransactionWithEncryptedKey,
   storeEncryptedKey,
   listEncryptedKeyMetadata,
+  signMetadataWithEncryptedKey,
 } from './lib/api'
 import {
   CHAIN_ETHEREUM,
@@ -17,7 +19,13 @@ import {
   KEYTYPE_ED25519,
 } from './lib/constants'
 
-import { getChainForNetwork, getGasParamsForNetwork, getBaseTransactionForNetwork } from './lib/wrapper-keys/utils'
+import { getPkpAccessControlCondition } from './lib/utils'
+
+import {
+  getChainForNetwork,
+  getGasParamsForNetwork,
+  getBaseTransactionForNetwork,
+} from './lib/wrapper-keys/utils'
 
 import type { SupportedNetworks } from './lib/service-client/types'
 import type {
@@ -42,6 +50,8 @@ import type {
   ListEncryptedKeyMetadataParams,
   StoreEncryptedKeyResult,
   ImportPrivateKeyResult,
+  NostrMetadata,
+  SignMetadataWithEncryptedKeyParams,
 } from './lib/types'
 
 export const constants = {
@@ -56,12 +66,14 @@ export const constants = {
 export const api = {
   exportPrivateKey,
   generatePrivateKey,
+  generateNostrPrivateKey,
   getEncryptedKey,
   listEncryptedKeyMetadata,
   importPrivateKey,
   signMessageWithEncryptedKey,
   signTransactionWithEncryptedKey,
   storeEncryptedKey,
+  signMetadataWithEncryptedKey,
 }
 
 export {
@@ -90,4 +102,7 @@ export {
   getChainForNetwork,
   getGasParamsForNetwork,
   getBaseTransactionForNetwork,
+  NostrMetadata,
+  SignMetadataWithEncryptedKeyParams,
+  getPkpAccessControlCondition,
 }

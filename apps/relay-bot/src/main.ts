@@ -4,7 +4,14 @@ if (!global.WebSocket) {
 
 import { startService, stopService } from './relay-bot'
 
+import setup from './setup'
+
 const main = async () => {
+  if (process.env.RUN_SETUP === 'true') {
+    console.log('🔄 Setting up...')
+    setup()
+    return
+  }
   const service = await startService()
 
   process.on('SIGINT', () => {

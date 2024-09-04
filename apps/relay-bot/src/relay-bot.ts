@@ -14,7 +14,7 @@ import { npubEncode } from 'nostr-tools/nip19'
 import type { SubCloser } from 'nostr-tools/abstract-pool'
 
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
-import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
+import { LIT_RPC, LitNetwork, LIT_CHAINS } from '@lit-protocol/constants'
 import {
   createSiweMessageWithRecaps,
   generateAuthSig,
@@ -47,6 +47,10 @@ const SUPABASE_ADMIN_EMAIL = process.env.SUPABASE_ADMIN_EMAIL
 const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
 
 const litActionCode = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8')
+const litActionCodeSendTransaction = fs.readFileSync(
+  './apps/lit-action/dist/sign-transaction.js',
+  'utf8',
+)
 
 export interface PartialRelayListEvent extends EventTemplate {
   kind: typeof RelayList
@@ -171,6 +175,12 @@ export async function startService({
               )
               console.info('Response sent to user:', content)
             }
+          }
+
+          // this format will json format
+          if (payload.toLowerCase().includes('send')) {
+            const response = await sendTransaction(event)
+            console.log(response)
           }
         }
       },
@@ -472,6 +482,115 @@ export async function generateUserWallet(event: EventTemplate) {
 
     console.log('generateWallet.response', JSON.stringify(generateWallet, null, 2))
     return generateWallet
+  } catch (error) {
+    console.error(error)
+  } finally {
+    litNodeClient?.disconnect()
+  }
+}
+
+export async function sendTransaction(event: EventTemplate) {
+  if (!GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
+  let litNodeClient: LitNodeClient
+
+  try {
+    const ethersSigner = generateEtherSigner()
+
+    console.log('🔄 Connecting to Lit network...')
+    const litNodeClient = generateLitNodeClient()
+    await litNodeClient.connect()
+    console.log('✅ Connected to Lit network')
+
+    const sessionSigs = await litNodeClient.getPkpSessionSigs({
+      pkpPublicKey: PKP_PUBLIC_KEY!,
+      //  capabilityAuthSigs: [capacityDelegationAuthSig],
+      authMethods: [
+        await EthWalletProvider.authenticate({
+          signer: ethersSigner,
+          litNodeClient,
+          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+        }),
+      ],
+      resourceAbilityRequests: [
+        {
+          resource: new LitPKPResource('*'),
+          ability: LitAbility.PKPSigning,
+        },
+        {
+          resource: new LitActionResource('*'),
+          ability: LitAbility.LitActionExecution,
+        },
+      ],
+      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+    })
+
+    const pkpAddress = ethers.utils.computeAddress(`0x${PKP_PUBLIC_KEY}`)
+
+    const accessControlConditions = [
+      {
+        contractAddress: '',
+        standardContractType: '',
+        chain: 'ethereum',
+        method: '',
+        parameters: [':userAddress'],
+        returnValueTest: {
+          comparator: '=',
+          value: pkpAddress,
+        },
+      },
+    ]
+
+    const getChainInfo = (chain: keyof typeof LIT_CHAINS) => {
+      if (LIT_CHAINS[chain] === undefined)
+        throw new Error(`Chain: ${chain} is not supported by Lit`)
+
+      return {
+        rpcUrl: LIT_CHAINS[chain].rpcUrls[0],
+        chainId: LIT_CHAINS[chain].chainId,
+      }
+    }
+
+    const chainInfo = getChainInfo('yellowstone')
+
+    // const ethersProvider = new ethers.providers.JsonRpcProvider(chainInfo.rpcUrl)
+
+    // const ethAddress = ethers.utils.computeAddress('0x04ab898b2a19e08a57b958435fbf567addbfa74c74a243407c1e30e1bbfa87f116987c012698cb4d02bada37def4accec0c15af67822648b3a0304750f8957a21c')
+
+    const unsignedTransaction = {
+      to: ethersSigner.address,
+      value: 1,
+      gasLimit: 21_000,
+      gasPrice: (await ethersSigner.getGasPrice()).toHexString(),
+      // nonce: await ethersProvider.getTransactionCount(ethAddress),
+      nonce: await litNodeClient.getLatestBlockhash(),
+      chainId: chainInfo.chainId,
+      chain: 'yellowstone',
+    }
+
+    const sendTransactionWithLitAction = await litNodeClient.executeJs({
+      sessionSigs,
+      // ipfsId: GENERATE_WALLET_IPFS_ID,
+      code: litActionCodeSendTransaction,
+      jsParams: {
+        publicKey: PKP_PUBLIC_KEY,
+        ciphertext:
+          'jAObGwunr9xi4YbNdJ6vAHtPFJmNSfyBu445KT8jJ+Z51TGJDJ60eeXd43wa+i5xBP0hseZ0C6O2Xi36vhIP0AdCaIvqNb4/A0wusdasgq5HOLVaGBpCIOZfK3Tb9bPYhxE/9w43aDLb+O+5U9ybFNZ7/LGLrIFKdjMFZe1/2PDzdnBNYASkn5NBdDgMSJqV9GcUwNAaFkgC',
+        dataToEncryptHash: 'fba3dd2b93d7e60ba3baa762c43066a09ec6991624e23ef0a5c600d63c3d24d9',
+        pkpAddress,
+        accessControlConditions,
+        nostrRequest: event,
+        unsignedTransaction,
+        supabase: {
+          url: SUPABASE_URL,
+          serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+          email: SUPABASE_ADMIN_EMAIL,
+          password: SUPABASE_ADMIN_PASSWORD,
+        },
+      },
+    })
+
+    console.log('generatesend.response', JSON.stringify(sendTransactionWithLitAction, null, 2))
+    return sendTransactionWithLitAction
   } catch (error) {
     console.error(error)
   } finally {

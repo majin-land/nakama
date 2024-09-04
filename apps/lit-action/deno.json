@@ -1,7 +1,9 @@
 {
   "tasks": {
     "dev": "deno run --watch main.ts",
-    "build": "deno run --allow-read --allow-write --allow-env --allow-run src/encrypt-root-key/esbuild.ts"
+    "build": "deno run --allow-read --allow-write --allow-env --allow-run src/encrypt-root-key/esbuild.ts && deno run --allow-read --allow-write --allow-env --allow-run src/sign-transaction/esbuild.ts",
+    "build-nostr-key": "deno run --allow-read --allow-write --allow-env --allow-run src/generate-nostr-private-key/esbuild.ts",
+    "build-nostr-metadata": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-nostr-metadata/esbuild.ts"
   },
   "imports": {
     "@composedb/server": "npm:@composedb/server@^0.8.0",

@@ -7,7 +7,8 @@
     "lint:fix": "nx run-many -t lint --fix",
     "reset": "nx reset",
     "serve": "nx run-many -t serve",
-    "relay-bot:serve": "npx nx run relay-bot:serve:development"
+    "relay-bot:serve": "npx nx run relay-bot:serve:development",
+    "relay-bot:setup": "RUN_SETUP=true npx nx run relay-bot:serve:development"
   },
   "private": true,
   "dependencies": {
@@ -36,7 +37,7 @@
     "apisauce": "^3.0.1",
     "axios": "^1.7.3",
     "big.js": "^6.2.1",
-    "ethers": "^5",
+    "ethers": "^5.7",
     "isomorphic-ws": "^5.0.0",
     "next": "^14.2.5",
     "node-localstorage": "^3.0.5",

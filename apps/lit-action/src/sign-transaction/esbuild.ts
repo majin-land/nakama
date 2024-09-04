@@ -3,16 +3,16 @@ import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.8.5/mod.t
 
 const go = async () => {
   let result = await esbuild.build({
-    entryPoints: ["./src/encrypt-root-key/index.ts"],
+    entryPoints: ["./src/sign-transaction/index.ts"],
     bundle: true,
     minify: true,
     sourcemap: false,
-    outfile: "./dist/encrypt-root-key.js",
+    outfile: "./dist/sign-transaction.js",
     sourceRoot: "./",
     platform: "node",
     metafile: true,
     external: ["ethers"],
-    inject: ["./src/encrypt-root-key/esbuild-shims.ts"],
+    inject: ["./src/sign-transaction/esbuild-shims.ts"],
     plugins: denoPlugins(),
   });
 
@@ -21,7 +21,6 @@ const go = async () => {
   console.log(text);
 
   console.log("Build completed successfully");
-  Deno.exit()
 };
 
 go();

@@ -1,14 +1,10 @@
-import {
-  ILitNodeClient,
-  LIT_NETWORKS_KEYS,
-  SessionSigsMap,
-} from '@lit-protocol/types';
+import { ILitNodeClient, LIT_NETWORKS_KEYS, SessionSigsMap } from '@lit-protocol/types'
 
 /** @typedef Network
  * The network type that the wrapped key will be used on.
  */
-export type Network = 'evm' | 'solana';
-export type KeyType = 'K256' | 'ed25519';
+export type Network = 'evm' | 'solana' | 'nostr'
+export type KeyType = 'K256' | 'ed25519'
 
 /** All API calls for the wrapped keys service require these arguments.
  *
@@ -17,12 +13,12 @@ export type KeyType = 'K256' | 'ed25519';
  * @property {ILitNodeClient} litNodeClient - The Lit Node Client used for executing the Lit Action and identifying which wrapped keys backend service to communicate with.
  */
 export interface BaseApiParams {
-  pkpSessionSigs: SessionSigsMap;
-  litNodeClient: ILitNodeClient;
+  pkpSessionSigs: SessionSigsMap
+  litNodeClient: ILitNodeClient
 }
 
 export interface ApiParamsSupportedNetworks {
-  network: Network;
+  network: Network
 }
 
 /** Get a list of encrypted key metadata for a specific PKP.
@@ -31,7 +27,7 @@ export interface ApiParamsSupportedNetworks {
  * Note that this list will not include `ciphertext` or `dataToEncryptHash` for the keys; to get those values call
  * `getEncryptedKey()` with the `id` of the appropriate key returned by this call.
  */
-export type ListEncryptedKeyMetadataParams = BaseApiParams;
+export type ListEncryptedKeyMetadataParams = BaseApiParams
 
 /** Fetching a previously persisted key's metadata requires valid pkpSessionSigs and a LIT Node Client instance configured for the appropriate network.
  * You must also provide the unique identifier (`id`) of the key to be fetched.  Ids are returned from `listEncryptedKeyMetadata()`.
@@ -42,8 +38,8 @@ export type ListEncryptedKeyMetadataParams = BaseApiParams;
  * @property { string } id The unique identifier (UUID V4) of the encrypted private key
  */
 export type GetEncryptedKeyDataParams = BaseApiParams & {
-  id: string;
-};
+  id: string
+}
 
 /** Metadata for a key that has been stored, encrypted, on the wrapped keys backend service
  * Returned by `listEncryptedKeyMetadata`; to get full stored key data including `ciphertext` and `dataToEncryptHash`
@@ -58,12 +54,12 @@ export type GetEncryptedKeyDataParams = BaseApiParams & {
  * @property { LIT_NETWORKS_KEYS } litNetwork The LIT network that the client who stored the key was connected to
  */
 export interface StoredKeyMetadata {
-  publicKey: string;
-  pkpAddress: string;
-  keyType: KeyType;
-  litNetwork: LIT_NETWORKS_KEYS;
-  memo: string;
-  id: string;
+  publicKey: string
+  pkpAddress: string
+  keyType: KeyType
+  litNetwork: LIT_NETWORKS_KEYS
+  memo: string
+  id: string
 }
 
 /** Complete encrypted private key data, including the `ciphertext` and `dataToEncryptHash` necessary to decrypt the key
@@ -73,8 +69,8 @@ export interface StoredKeyMetadata {
  * @property { string } dataToEncryptHash SHA-256 of the ciphertext
  */
 export interface StoredKeyData extends StoredKeyMetadata {
-  ciphertext: string;
-  dataToEncryptHash: string;
+  ciphertext: string
+  dataToEncryptHash: string
 }
 
 /** Fetching a previously persisted key's metadata only requires valid pkpSessionSigs and a LIT Node Client instance configured for the appropriate network.
@@ -84,10 +80,7 @@ export interface StoredKeyData extends StoredKeyMetadata {
  *
  */
 export type StoreEncryptedKeyParams = BaseApiParams &
-  Pick<
-    StoredKeyData,
-    'publicKey' | 'keyType' | 'dataToEncryptHash' | 'ciphertext' | 'memo'
-  >;
+  Pick<StoredKeyData, 'publicKey' | 'keyType' | 'dataToEncryptHash' | 'ciphertext' | 'memo'>
 
 /** Result of storing a private key in the wrapped keys backend service
  * Includes the unique identifier which is necessary to get the encrypted ciphertext and dataToEncryptHash in the future
@@ -97,8 +90,8 @@ export type StoreEncryptedKeyParams = BaseApiParams &
  * @property { string } id The unique identifier (UUID V4) of the encrypted private key
  */
 export interface StoreEncryptedKeyResult {
-  id: string;
-  pkpAddress: string;
+  id: string
+  pkpAddress: string
 }
 
 /** Exporting a previously persisted key only requires valid pkpSessionSigs and a LIT Node Client instance configured for the appropriate network.
@@ -110,8 +103,8 @@ export interface StoreEncryptedKeyResult {
  */
 export type ExportPrivateKeyParams = BaseApiParams &
   ApiParamsSupportedNetworks & {
-    id: string;
-  };
+    id: string
+  }
 
 /** Includes the decrypted private key and metadata that was stored alongside it in the wrapped keys service
  *
@@ -125,13 +118,13 @@ export type ExportPrivateKeyParams = BaseApiParams &
  * @property { string } id The unique identifier (UUID V4) of the encrypted private key
  */
 export interface ExportPrivateKeyResult {
-  pkpAddress: string;
-  decryptedPrivateKey: string;
-  publicKey: string;
-  litNetwork: LIT_NETWORKS_KEYS;
-  keyType: KeyType;
-  memo: string;
-  id: string;
+  pkpAddress: string
+  decryptedPrivateKey: string
+  publicKey: string
+  litNetwork: LIT_NETWORKS_KEYS
+  keyType: KeyType
+  memo: string
+  id: string
 }
 
 /** @typedef GeneratePrivateKeyParams
@@ -141,8 +134,8 @@ export interface ExportPrivateKeyResult {
  */
 export type GeneratePrivateKeyParams = BaseApiParams &
   ApiParamsSupportedNetworks & {
-    memo: string;
-  };
+    memo: string
+  }
 
 /** @typedef GeneratePrivateKeyResult
  * @property { string } pkpAddress The LIT PKP Address that the key was linked to; this is derived from the provided pkpSessionSigs
@@ -150,9 +143,9 @@ export type GeneratePrivateKeyParams = BaseApiParams &
  * @property { string } id The unique identifier (UUID V4) of the encrypted private key
  */
 export interface GeneratePrivateKeyResult {
-  pkpAddress: string;
-  generatedPublicKey: string;
-  id: string;
+  pkpAddress: string
+  generatedPublicKey: string
+  id: string
 }
 
 /** @typedef ImportPrivateKeyParams
@@ -164,10 +157,10 @@ export interface GeneratePrivateKeyResult {
  * @property { string } memo A (typically) user-provided descriptor for the encrypted private key
  */
 export interface ImportPrivateKeyParams extends BaseApiParams {
-  privateKey: string;
-  publicKey: string;
-  keyType: KeyType;
-  memo: string;
+  privateKey: string
+  publicKey: string
+  keyType: KeyType
+  memo: string
 }
 
 /** @typedef ImportPrivateKeyResult
@@ -175,13 +168,13 @@ export interface ImportPrivateKeyParams extends BaseApiParams {
  * @property { string } id The unique identifier (UUID V4) of the encrypted private key
  */
 export interface ImportPrivateKeyResult {
-  pkpAddress: string;
-  id: string;
+  pkpAddress: string
+  id: string
 }
 
 interface SignMessageParams {
-  messageToSign: string | Uint8Array;
-  id: string;
+  messageToSign: string | Uint8Array
+  id: string
 }
 
 /** @typedef SignMessageWithEncryptedKeyParams
@@ -192,10 +185,10 @@ interface SignMessageParams {
  */
 export type SignMessageWithEncryptedKeyParams = BaseApiParams &
   ApiParamsSupportedNetworks &
-  SignMessageParams;
+  SignMessageParams
 
 interface BaseLitTransaction {
-  chain: string;
+  chain: string
 }
 
 /**  EthereumLitTransaction must be provided to the `SignTransaction` endpoint when `network` is `evm`.
@@ -211,33 +204,44 @@ interface BaseLitTransaction {
  *
  */
 export interface EthereumLitTransaction extends BaseLitTransaction {
-  toAddress: string;
-  value: string;
-  chainId: number;
-  gasPrice?: string;
-  gasLimit?: number;
-  dataHex?: string;
+  toAddress: string
+  value: string
+  chainId: number
+  gasPrice?: string
+  gasLimit?: number
+  dataHex?: string
 }
 
 export interface SerializedTransaction extends BaseLitTransaction {
-  serializedTransaction: string;
+  serializedTransaction: string
 }
 
 export interface SignTransactionParams extends BaseApiParams {
-  id: string;
-  broadcast: boolean;
+  id: string
+  broadcast: boolean
 }
 
-export interface SignTransactionParamsSupportedEvm
-  extends SignTransactionParams {
-  unsignedTransaction: EthereumLitTransaction;
-  network: Extract<Network, 'evm'>;
+export interface NostrMetadata {
+  name: string
+  about: string
+  picture: `https://${string}`
+  nip05: `${string}@${string}`
+  lud06: string
+  website: `https://${string}`
 }
 
-export interface SignTransactionParamsSupportedSolana
-  extends SignTransactionParams {
-  unsignedTransaction: SerializedTransaction;
-  network: Extract<Network, 'solana'>;
+export interface SignMetadataParamsSupported extends SignTransactionParams {
+  unsignedMetadata: NostrMetadata
+}
+
+export interface SignTransactionParamsSupportedEvm extends SignTransactionParams {
+  unsignedTransaction: EthereumLitTransaction
+  network: Extract<Network, 'evm'>
+}
+
+export interface SignTransactionParamsSupportedSolana extends SignTransactionParams {
+  unsignedTransaction: SerializedTransaction
+  network: Extract<Network, 'solana'>
 }
 
 /** @typedef SignTransactionWithEncryptedKeyParams
@@ -249,4 +253,6 @@ export interface SignTransactionParamsSupportedSolana
  */
 export type SignTransactionWithEncryptedKeyParams =
   | SignTransactionParamsSupportedEvm
-  | SignTransactionParamsSupportedSolana;
+  | SignTransactionParamsSupportedSolana
+
+export type SignMetadataWithEncryptedKeyParams = SignMetadataParamsSupported
