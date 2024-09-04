@@ -8,12 +8,14 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2020",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "lib": ["DOM", "DOM.Iterable", "esnext", "esnext.bigint"],
+    "module": "ES2020",
+    "moduleResolution": "node",
+    "lib": ["DOM", "ES2020", "ES2021.String", "DOM.Iterable", "esnext", "esnext.bigint"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "paths": {
       "@nakama/social-keys": ["libs/social-keys/src/index.ts"]
     }

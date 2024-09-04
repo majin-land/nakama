@@ -15,6 +15,7 @@
     "@scure/bip32": "npm:@scure/bip32@^1.4.0",
     "@std/assert": "jsr:@std/assert@1",
     "@std/crypto": "jsr:@std/crypto@^1.0.3",
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.45.3",
     "fs": "npm:fs@^0.0.2",
     "siwe": "npm:siwe@^2.3.2"
   },

@@ -17,6 +17,8 @@ import {
   KEYTYPE_ED25519,
 } from './lib/constants'
 
+import { getChainForNetwork, getGasParamsForNetwork, getBaseTransactionForNetwork } from './lib/wrapper-keys/utils'
+
 import type { SupportedNetworks } from './lib/service-client/types'
 import type {
   SignMessageWithEncryptedKeyParams,
@@ -85,4 +87,7 @@ export {
   StoredKeyData,
   StoredKeyMetadata,
   SupportedNetworks,
+  getChainForNetwork,
+  getGasParamsForNetwork,
+  getBaseTransactionForNetwork,
 }
