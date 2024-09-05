@@ -5,6 +5,8 @@ import { NavContext } from '@/context/nav'
 
 import ChatList from '../chat-list'
 import ChatContent from '../chat-content'
+import Groups from '../groups'
+import Wallet from '../wallet'
 
 function ChatBoddy() {
   const { nav } = useContext(NavContext)
@@ -19,7 +21,13 @@ function ChatBoddy() {
         display: 'flex',
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: '350px' }}>{nav === 'chats' && <ChatList />}</Box>
+      <Box
+        sx={{ width: '100%', maxWidth: '350px', borderRight: '1px solid #ebe7fb', height: '100%' }}
+      >
+        {nav === 'chats' && <ChatList />}
+        {nav === 'groups' && <Groups />}
+        {nav === 'wallet' && <Wallet />}
+      </Box>
       <ChatContent />
     </Box>
   )

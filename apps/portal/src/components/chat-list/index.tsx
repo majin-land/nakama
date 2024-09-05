@@ -6,10 +6,10 @@ import ChatListItem from './chat-list-item'
 
 const ChatList = () => {
   return (
-    <Box sx={{ borderRight: '1px solid #ebe7fb', height: '100%' }}>
+    <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">Chats</Typography>
-        <IconButton aria-label="delete">
+        <IconButton>
           <MoreVertIcon />
         </IconButton>
       </Box>
@@ -34,7 +34,7 @@ const ChatList = () => {
       <Box sx={{ marginTop: '15px', overflow: 'auto', maxHeight: 'calc(100vh - calc(100vh / 2))' }}>
         <ChatListItem />
       </Box>
-    </Box>
+    </>
   )
 }
 
