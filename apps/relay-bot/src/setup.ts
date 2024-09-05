@@ -1,5 +1,4 @@
 import * as ethers from 'ethers'
-import { SimplePool, VerifiedEvent } from 'nostr-tools'
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
@@ -14,6 +13,7 @@ import {
   finalizeEvent,
   verifyEvent,
   type EventTemplate,
+  VerifiedEvent,
 } from 'nostr-tools'
 
 import {
@@ -35,12 +35,6 @@ const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 
 const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
-
-export interface PartialRelayListEvent extends EventTemplate {
-  kind: typeof RelayList
-  tags: (['r', string] | ['r', string, 'read' | 'write'])[]
-  content: ''
-}
 
 export const action = async (
   pkpPublicKey: string,
