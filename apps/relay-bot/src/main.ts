@@ -9,7 +9,7 @@ import setup from './setup'
 const main = async () => {
   if (process.env.RUN_SETUP === 'true') {
     console.log('🔄 Setting up...')
-    setup()
+    await setup()
     return
   }
   const service = await startService()
