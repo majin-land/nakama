@@ -8,7 +8,8 @@
     "reset": "nx reset",
     "serve": "nx run-many -t serve",
     "relay-bot:serve": "npx nx run relay-bot:serve:development",
-    "relay-bot:setup": "RUN_SETUP=true npx nx run relay-bot:serve:development"
+    "relay-bot:setup": "RUN_SETUP=true npx nx run relay-bot:serve:development",
+    "relay-bot:run": "RUN_BOT=true npx nx run relay-bot:serve:development"
   },
   "private": true,
   "dependencies": {

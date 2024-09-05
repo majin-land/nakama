@@ -6,6 +6,8 @@ export type LitActionType =
   | 'generateEncryptedKey'
   | 'exportPrivateKey'
   | 'signRelayList'
+  | 'messageHandler'
+  | 'signMetadata'
 
 export type LitCidRepositoryEntry = Readonly<Record<Network, string>>
 

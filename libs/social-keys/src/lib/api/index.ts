@@ -9,6 +9,7 @@ import { signTransactionWithEncryptedKey } from './sign-transaction-with-encrypt
 import { storeEncryptedKey } from './store-encrypted-key'
 import { signMetadataWithEncryptedKey } from './sign-metadata-with-encrypted-key'
 import { signRelayListWithEncryptedKey } from './sign-relay-list-with-encrypted-key'
+import { signNostrEventWithEncryptedKey } from './sign-nostr-event-with-encrypted-key'
 
 export {
   listEncryptedKeyMetadata,
@@ -22,4 +23,5 @@ export {
   generateNostrPrivateKey,
   signMetadataWithEncryptedKey,
   signRelayListWithEncryptedKey,
+  signNostrEventWithEncryptedKey,
 }

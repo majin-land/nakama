@@ -5,33 +5,31 @@ import {
 } from '@lit-protocol/types';
 
 import { postLitActionValidation } from './utils';
-import {
-  EthereumLitTransaction,
-  SerializedTransaction,
-  StoredKeyData,
-} from '../types';
+import { NostrEvent, StoredKeyData } from '../types';
 import { GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK } from '@lit-protocol/constants';
-import { VerifiedEvent } from 'nostr-tools';
 
-interface SignTransactionWithLitActionParams {
+interface SignNostrEventWithLitActionParams {
   litNodeClient: ILitNodeClient;
   pkpSessionSigs: SessionSigsMap;
   litActionIpfsCid: string;
-  unsignedTransaction: EthereumLitTransaction | SerializedTransaction | VerifiedEvent;
+  nostrEvent: NostrEvent;
   storedKeyMetadata: StoredKeyData;
   accessControlConditions: AccessControlConditions;
-  broadcast: boolean;
 }
 
-export async function signTransactionWithLitAction({
-  accessControlConditions,
-  broadcast,
-  litActionIpfsCid,
-  litNodeClient,
-  pkpSessionSigs,
-  storedKeyMetadata: { ciphertext, dataToEncryptHash, pkpAddress },
-  unsignedTransaction,
-}: SignTransactionWithLitActionParams): Promise<string> {
+export async function signNostrEventWithLitAction(
+  args: SignNostrEventWithLitActionParams
+) {
+  const {
+    accessControlConditions,
+    litNodeClient,
+    nostrEvent,
+    pkpSessionSigs,
+    litActionIpfsCid,
+    storedKeyMetadata,
+  } = args;
+
+  const { pkpAddress, ciphertext, dataToEncryptHash } = storedKeyMetadata;
   const result = await litNodeClient.executeJs({
     sessionSigs: pkpSessionSigs,
     ipfsId: litActionIpfsCid,
@@ -39,8 +37,7 @@ export async function signTransactionWithLitAction({
       pkpAddress,
       ciphertext,
       dataToEncryptHash,
-      unsignedTransaction,
-      broadcast,
+      nostrEvent,
       accessControlConditions,
     },
     ipfsOptions: {
@@ -48,6 +45,5 @@ export async function signTransactionWithLitAction({
         GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK[litNodeClient.config.litNetwork],
     },
   });
-
   return postLitActionValidation(result);
 }

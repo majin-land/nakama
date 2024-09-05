@@ -1,5 +1,5 @@
 import { ILitNodeClient, LIT_NETWORKS_KEYS, SessionSigsMap } from '@lit-protocol/types'
-
+import { VerifiedEvent, verifiedSymbol } from 'nostr-tools'
 /** @typedef Network
  * The network type that the wrapped key will be used on.
  */
@@ -232,6 +232,17 @@ export interface NostrMetadata {
 
 export interface NostrRelays { [url: string]: { read: boolean; write: boolean } }
 
+export interface NostrEvent {
+  kind: number
+  tags: string[][]
+  content: string
+  created_at: number
+  pubkey: string
+  id: string
+  sig: string
+  [verifiedSymbol]?: boolean
+}
+
 export interface SignMetadataParamsSupported extends SignTransactionParams {
   unsignedMetadata: NostrMetadata
 }
@@ -239,15 +250,28 @@ export interface SignRelayListParamsSupported extends SignTransactionParams {
   nostr_write_relays: NostrRelays
   nostr_read_relays: NostrRelays
 }
+export interface SignNostrEventParamsSupported extends SignTransactionParams {
+  nostrEvent: NostrEvent
+}
 
 export interface SignTransactionParamsSupportedEvm extends SignTransactionParams {
   unsignedTransaction: EthereumLitTransaction
   network: Extract<Network, 'evm'>
 }
 
+export interface SignTransactionParamsSupportedEvmNostr extends SignTransactionParams {
+  unsignedTransaction: VerifiedEvent
+  network: Extract<Network, 'nostr'>
+}
+
 export interface SignTransactionParamsSupportedSolana extends SignTransactionParams {
   unsignedTransaction: SerializedTransaction
   network: Extract<Network, 'solana'>
+}
+
+export interface SignTransactionParamsSupportedSolanaNostr extends SignTransactionParams {
+  unsignedTransaction: VerifiedEvent
+  network: Extract<Network, 'nostr'>
 }
 
 /** @typedef SignTransactionWithEncryptedKeyParams
@@ -260,6 +284,9 @@ export interface SignTransactionParamsSupportedSolana extends SignTransactionPar
 export type SignTransactionWithEncryptedKeyParams =
   | SignTransactionParamsSupportedEvm
   | SignTransactionParamsSupportedSolana
+  | SignTransactionParamsSupportedEvmNostr
+  | SignTransactionParamsSupportedSolanaNostr
 
 export type SignMetadataWithEncryptedKeyParams = SignMetadataParamsSupported
 export type SignRelayListWithEncryptedKeyParams = SignRelayListParamsSupported
+export type SignNostrEventWithEncryptedKeyParams = SignNostrEventParamsSupported

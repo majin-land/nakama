@@ -27,9 +27,10 @@
       "npm:@supabase/realtime-js@2.10.2": "npm:@supabase/realtime-js@2.10.2",
       "npm:@supabase/storage-js@2.7.0": "npm:@supabase/storage-js@2.7.0",
       "npm:@types/node": "npm:@types/node@18.16.19",
+      "npm:ethers@^5.7.2": "npm:ethers@5.7.2",
       "npm:fs@^0.0.2": "npm:fs@0.0.2",
       "npm:nostr-tools": "npm:nostr-tools@2.7.2",
-      "npm:siwe@^2.3.2": "npm:siwe@2.3.2_ethers@6.13.2"
+      "npm:siwe@^2.3.2": "npm:siwe@2.3.2_ethers@5.7.2"
     },
     "jsr": {
       "@nostr/tools@2.3.1": {
@@ -68,10 +69,6 @@
     "npm": {
       "@adraffy/ens-normalize@1.10.0": {
         "integrity": "sha512-nA9XHtlAkYfJxY7bce8DcN7eKxWWCWkU+1GR9d+U6MbNpfwQp8TI7vqOsBsMcHoT4mBu2kypKoSKnghEzOOq5Q==",
-        "dependencies": {}
-      },
-      "@adraffy/ens-normalize@1.10.1": {
-        "integrity": "sha512-96Z2IP3mYmF1Xg2cDm8f1gWGf/HUVedQ3FMifV4kG/PQ4yEP51xDtRAEfhVNt5f/uzpNkZHwWQuUcu6D6K+Ekw==",
         "dependencies": {}
       },
       "@babel/runtime@7.25.6": {
@@ -951,6 +948,17 @@
           "hash.js": "hash.js@1.1.7"
         }
       },
+      "@ethersproject/solidity@5.7.0": {
+        "integrity": "sha512-HmabMd2Dt/raavyaGukF4XxizWKhKQ24DoLtdNbBmNKUOPqwjsKQSdV9GQtj9CBEea9DlzETlVER1gYeXXBGaA==",
+        "dependencies": {
+          "@ethersproject/bignumber": "@ethersproject/bignumber@5.7.0",
+          "@ethersproject/bytes": "@ethersproject/bytes@5.7.0",
+          "@ethersproject/keccak256": "@ethersproject/keccak256@5.7.0",
+          "@ethersproject/logger": "@ethersproject/logger@5.7.0",
+          "@ethersproject/sha2": "@ethersproject/sha2@5.7.0",
+          "@ethersproject/strings": "@ethersproject/strings@5.7.0"
+        }
+      },
       "@ethersproject/strings@5.7.0": {
         "integrity": "sha512-/9nu+lj0YswRNSH0NXYqrh8775XNyEdUQAuf3f+SmOrnVewcJ5SBNAjF7lpgehKi4abvNNXyf+HX86czCdJ8Mg==",
         "dependencies": {
@@ -971,6 +979,14 @@
           "@ethersproject/properties": "@ethersproject/properties@5.7.0",
           "@ethersproject/rlp": "@ethersproject/rlp@5.7.0",
           "@ethersproject/signing-key": "@ethersproject/signing-key@5.7.0"
+        }
+      },
+      "@ethersproject/units@5.7.0": {
+        "integrity": "sha512-pD3xLMy3SJu9kG5xDGI7+xhTEmGXlEqXU4OfNapmfnxLVY4EMSSRp7j1k7eezutBPH7RBN/7QPnwR7hzNlEFeg==",
+        "dependencies": {
+          "@ethersproject/bignumber": "@ethersproject/bignumber@5.7.0",
+          "@ethersproject/constants": "@ethersproject/constants@5.7.0",
+          "@ethersproject/logger": "@ethersproject/logger@5.7.0"
         }
       },
       "@ethersproject/wallet@5.7.0": {
@@ -1855,10 +1871,6 @@
         "integrity": "sha512-Exw4yUWMBXM3X+8oqzJNRqZSwUAaS4+7NdvHqQuFi/d+synz++xmX3QIf+BFqneW8N31R8Ky+sikfZUXq07ggQ==",
         "dependencies": {}
       },
-      "@types/node@18.15.13": {
-        "integrity": "sha512-N+0kuo9KgrUQ1Sn/ifDXsvg0TTleP7rIy4zOBGECxAljqvqfqpTfzx0Q1NUedOixRMBfe2Whhb056a42cWs26Q==",
-        "dependencies": {}
-      },
       "@types/node@18.16.19": {
         "integrity": "sha512-IXl7o+R9iti9eBW4Wg2hx1xQDig183jj7YLn8F7udNceyfkbn1ZxmzZXuak20gR40D7pIkIY1kYGx5VIGbaHKA==",
         "dependencies": {}
@@ -1941,10 +1953,6 @@
       },
       "aes-js@3.0.0": {
         "integrity": "sha512-H7wUZRn8WpTq9jocdxQ2c8x2sKo9ZVmzfRE13GiNJXfp7NcKYEdvl3vspKjXox6RIG2VtaRe4JFvxG4rqp2Zuw==",
-        "dependencies": {}
-      },
-      "aes-js@4.0.0-beta.5": {
-        "integrity": "sha512-G965FqalsNyrPqgEGON7nIx1e/OVENSgiEIzyC63haUMuvNnwIgIjMs52hlTCKhkBny7A2ORNlfY9Zu+jmGk1Q==",
         "dependencies": {}
       },
       "aggregate-error@3.1.0": {
@@ -2569,16 +2577,39 @@
         "integrity": "sha512-U1suiZ2oDVWv4zPO56S0NcR5QriEahGtdN2OR6FiOG4WJvcjBVFB0qI4+eKoWFH483PKGuLuu6V8Z4T5g63UVA==",
         "dependencies": {}
       },
-      "ethers@6.13.2": {
-        "integrity": "sha512-9VkriTTed+/27BGuY1s0hf441kqwHJ1wtN2edksEtiRvXx+soxRX3iSXTfFqq2+YwrOqbDoTHjIhQnjJRlzKmg==",
+      "ethers@5.7.2": {
+        "integrity": "sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==",
         "dependencies": {
-          "@adraffy/ens-normalize": "@adraffy/ens-normalize@1.10.1",
-          "@noble/curves": "@noble/curves@1.2.0",
-          "@noble/hashes": "@noble/hashes@1.3.2",
-          "@types/node": "@types/node@18.15.13",
-          "aes-js": "aes-js@4.0.0-beta.5",
-          "tslib": "tslib@2.4.0",
-          "ws": "ws@8.17.1"
+          "@ethersproject/abi": "@ethersproject/abi@5.7.0",
+          "@ethersproject/abstract-provider": "@ethersproject/abstract-provider@5.7.0",
+          "@ethersproject/abstract-signer": "@ethersproject/abstract-signer@5.7.0",
+          "@ethersproject/address": "@ethersproject/address@5.7.0",
+          "@ethersproject/base64": "@ethersproject/base64@5.7.0",
+          "@ethersproject/basex": "@ethersproject/basex@5.7.0",
+          "@ethersproject/bignumber": "@ethersproject/bignumber@5.7.0",
+          "@ethersproject/bytes": "@ethersproject/bytes@5.7.0",
+          "@ethersproject/constants": "@ethersproject/constants@5.7.0",
+          "@ethersproject/contracts": "@ethersproject/contracts@5.7.0",
+          "@ethersproject/hash": "@ethersproject/hash@5.7.0",
+          "@ethersproject/hdnode": "@ethersproject/hdnode@5.7.0",
+          "@ethersproject/json-wallets": "@ethersproject/json-wallets@5.7.0",
+          "@ethersproject/keccak256": "@ethersproject/keccak256@5.7.0",
+          "@ethersproject/logger": "@ethersproject/logger@5.7.0",
+          "@ethersproject/networks": "@ethersproject/networks@5.7.1",
+          "@ethersproject/pbkdf2": "@ethersproject/pbkdf2@5.7.0",
+          "@ethersproject/properties": "@ethersproject/properties@5.7.0",
+          "@ethersproject/providers": "@ethersproject/providers@5.7.2",
+          "@ethersproject/random": "@ethersproject/random@5.7.0",
+          "@ethersproject/rlp": "@ethersproject/rlp@5.7.0",
+          "@ethersproject/sha2": "@ethersproject/sha2@5.7.0",
+          "@ethersproject/signing-key": "@ethersproject/signing-key@5.7.0",
+          "@ethersproject/solidity": "@ethersproject/solidity@5.7.0",
+          "@ethersproject/strings": "@ethersproject/strings@5.7.0",
+          "@ethersproject/transactions": "@ethersproject/transactions@5.7.0",
+          "@ethersproject/units": "@ethersproject/units@5.7.0",
+          "@ethersproject/wallet": "@ethersproject/wallet@5.7.0",
+          "@ethersproject/web": "@ethersproject/web@5.7.1",
+          "@ethersproject/wordlists": "@ethersproject/wordlists@5.7.0"
         }
       },
       "eventemitter3@5.0.1": {
@@ -3728,12 +3759,12 @@
           "simple-concat": "simple-concat@1.0.1"
         }
       },
-      "siwe@2.3.2_ethers@6.13.2": {
+      "siwe@2.3.2_ethers@5.7.2": {
         "integrity": "sha512-aSf+6+Latyttbj5nMu6GF3doMfv2UYj83hhwZgUF20ky6fTS83uVhkQABdIVnEuS8y1bBdk7p6ltb9SmlhTTlA==",
         "dependencies": {
           "@spruceid/siwe-parser": "@spruceid/siwe-parser@2.1.2",
           "@stablelib/random": "@stablelib/random@1.0.2",
-          "ethers": "ethers@6.13.2",
+          "ethers": "ethers@5.7.2",
           "uri-js": "uri-js@4.4.1",
           "valid-url": "valid-url@1.0.9"
         }
@@ -3865,10 +3896,6 @@
       },
       "tr46@0.0.3": {
         "integrity": "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==",
-        "dependencies": {}
-      },
-      "tslib@2.4.0": {
-        "integrity": "sha512-d6xOpEDfsi2CZVlPQzGeux8XMwLT9hssAsaPYExaQMuYskwb+x1x7J371tWlbBdWHroy99KnVB6qIkUbs5X3UQ==",
         "dependencies": {}
       },
       "tslib@2.7.0": {
@@ -4227,6 +4254,7 @@
     "https://esm.sh/nostr-tools@2.7.2": "657b0f8f1a3801ba80f3506410634f9611169bb8946f2f7ef10dc727671d0044",
     "https://esm.sh/nostr-tools@2.7.2/kinds": "b635b0ce9132c4859b087a154a5e6a69eca5caa5c9c3db5636b32234dad65953",
     "https://esm.sh/nostr-tools@2.7.2/nip04.js": "6b37bc0602abb67e8c22640c885df2bd0212d3caf3cc96f3e7e782def1618887",
+    "https://esm.sh/nostr-tools@2.7.2/nip19.js": "99b11195c316015eb50c513c9b263a74e293c71dd1eb1afac157bf07ad130295",
     "https://esm.sh/nostr-tools@2.7.2/pure": "90dc010e649e7d2eed474e6db983620c50468cfaeb2333381326089348578626",
     "https://esm.sh/siwe@2.3.2": "732e029b7499e65ca41b46cafd33476a36df51859f8224aeec63dc19ec383b2e",
     "https://esm.sh/v135/@adraffy/ens-normalize@1.10.1/denonext/ens-normalize.mjs": "32a1f5e1ab2dbc99bd16efdfeee5ced3656d4b53ad059f2587d272c556110005",
@@ -4331,6 +4359,7 @@
     "https://esm.sh/v135/nostr-tools@1.13.0/denonext/nostr-tools.mjs": "a78c7f4ea80e7e0676d7763f789c583976fa8bc1c94a9cef09ce3be4850af68b",
     "https://esm.sh/v135/nostr-tools@2.7.2/denonext/kinds.js": "76dbeb3e808c2a3ee0d85bbb06cc6d13a4a888a51811ea02149dd10ec0152f15",
     "https://esm.sh/v135/nostr-tools@2.7.2/denonext/nip04.js": "a222c76816d3588317485e031f85c468f44db6cec1a9e6deaa3be523be4ba18e",
+    "https://esm.sh/v135/nostr-tools@2.7.2/denonext/nip19.js": "f6c10bb341a28c423c8fb01bda3787d1adcbd453b54b7d8aec929086b379fec4",
     "https://esm.sh/v135/nostr-tools@2.7.2/denonext/nostr-tools.mjs": "efd5c7fece1f09854277b0a3c93f5856ccbd94c3b7e11c1713c04cfe77f59017",
     "https://esm.sh/v135/nostr-tools@2.7.2/denonext/pure.js": "203ecba7fb6cff75ee8f900e10f5007006130fb2fdf57615742dcc950c88d3f6",
     "https://esm.sh/v135/siwe@2.3.2/denonext/siwe.mjs": "ecf3a0064d7eecdade6fc7ff21e32c029d6720fc3ffe899f85a247bc7fbae1dd",
@@ -4352,6 +4381,7 @@
       "npm:@noble/hashes@^1.4.0",
       "npm:@noble/secp256k1@^2.1.0",
       "npm:@scure/bip32@^1.4.0",
+      "npm:ethers@^5.7.2",
       "npm:fs@^0.0.2",
       "npm:siwe@^2.3.2"
     ]

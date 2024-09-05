@@ -4,7 +4,7 @@ const LIT_ACTION_CID_REPOSITORY: LitCidRepository = Object.freeze({
   signTransaction: Object.freeze({
     evm: 'QmRWGips9G3pHXNa3viGFpAyh1LwzrR35R4xMiG61NuHpS',
     solana: 'QmPZR6FnTPMYpzKxNNHt4xRckDsAoQz76cxkLhJArSoe4w',
-    nostr: '',
+    nostr: 'QmRWGips9G3pHXNa3viGFpAyh1LwzrR35R4xMiG61NuHpS',
   }),
   signMessage: Object.freeze({
     evm: 'QmNy5bHvgaN2rqo4kMU71jtgSSxDES6HSDgadBV29pfcRu',
@@ -26,6 +26,16 @@ const LIT_ACTION_CID_REPOSITORY: LitCidRepository = Object.freeze({
     solana: 'Qmb5ZAm1EZRL7dYTtyYxkPxx4kBmoCjjzcgdrJH9cKMXxR',
     nostr: '',
   }),
+  messageHandler: Object.freeze({
+    evm: '',
+    solana: '',
+    nostr: 'QmZTp1WMtQhpkLcJpjdm6jrEcrULzam5qoYxBx4ZpgYFdR',
+  }),
+  signMetadata: Object.freeze({
+    evm: '',
+    solana: '',
+    nostr: 'QmZTp1WMtQhpkLcJpjdm6jrEcrULzam5qoYxBx4ZpgYFdR',
+  })
 })
 
 export { LIT_ACTION_CID_REPOSITORY }

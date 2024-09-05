@@ -1,7 +1,7 @@
-import { signMetadataWithLitAction } from '../lit-actions-client';
+import { signNostrEventWithLitAction } from '../lit-actions-client';
 import { getLitActionCid } from '../lit-actions-client/utils';
 import { fetchPrivateKey } from '../service-client';
-import { SignMetadataWithEncryptedKeyParams } from '../types';
+import { SignNostrEventWithEncryptedKeyParams } from '../types';
 import { getFirstSessionSig, getPkpAccessControlCondition } from '../utils';
 
 /**
@@ -10,12 +10,12 @@ import { getFirstSessionSig, getPkpAccessControlCondition } from '../utils';
  * the decrypted key to sign the provided transaction
  * Optionally, if you pass `broadcast: true`, the LIT action will also submit the signed transaction to the associated RPC endpoint on your behalf
  *
- * @param { SignMetadataWithEncryptedKeyParams } params Parameters required to sign the requested transaction
+ * @param { SignNostrEventWithEncryptedKeyParams } params Parameters required to sign the requested transaction
  *
  * @returns { string } The signed transaction OR its transaction hash if you set `broadcast: true` and the LIT action supports this functionality.
  */
-export async function signMetadataWithEncryptedKey(
-  params: SignMetadataWithEncryptedKeyParams
+export async function signNostrEventWithEncryptedKey(
+  params: SignNostrEventWithEncryptedKeyParams
 ): Promise<string> {
   const { litNodeClient, pkpSessionSigs, id } = params;
   const sessionSig = getFirstSessionSig(pkpSessionSigs);
@@ -30,9 +30,9 @@ export async function signMetadataWithEncryptedKey(
     storedKeyMetadata.pkpAddress
   );
 
-  return signMetadataWithLitAction({
+  return signNostrEventWithLitAction({
     ...params,
-    litActionIpfsCid: getLitActionCid('nostr', 'signMetadata'),
+    litActionIpfsCid: getLitActionCid('nostr', 'messageHandler'),
     storedKeyMetadata,
     accessControlConditions: [allowPkpAddressToDecrypt],
   });

@@ -5,6 +5,7 @@ import {
   finalizeEvent,
   verifyEvent,
   type EventTemplate,
+  VerifiedEvent,
 } from 'nostr-tools'
 import { hkdf } from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha256'
@@ -34,7 +35,13 @@ import * as fs from 'fs'
 // const supabaseKey = process.env.SUPABASE_KEY
 // const supabase = createClient(supabaseUrl, supabaseKey)
 
-const { generatePrivateKey, getEncryptedKey, exportPrivateKey, fetchPrivateKey } = api
+const {
+  generatePrivateKey,
+  getEncryptedKey,
+  exportPrivateKey,
+  fetchPrivateKey,
+  signTransactionWithEncryptedKey,
+} = api
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 const GENERATE_WALLET_IPFS_ID = process.env.LIT_GENERATE_ADDRESS_IPFS
@@ -119,6 +126,7 @@ export async function startService({
     {
       async onevent(event) {
         console.info('Received DM:', event)
+
         if (verifyEvent(event)) {
           // const payload = await nip04.decrypt(nostrSeckey, event.pubkey, event.content)
           //   console.info('Payload:', payload, nostrSeckey, 'nostrSeckey')
@@ -157,24 +165,36 @@ export async function startService({
           //     }
           //   }
           // if (payload.toLowerCase().includes('register')) {
-          const result = await generateUserWallet(event)
-          if (result) {
-            console.log(result.response)
+          // success
+          // const result = await generateUserWallet(event)
+          // if (result) {
+          //   console.log(result.response)
 
-            const content = JSON.parse(result.response)
-            if (content) {
-              await Promise.all(pool.publish(Object.keys(relays), content))
-            }
-            console.info('Response sent to user:', content)
-          }
+          //   const content = JSON.parse(result.response)
+          //   if (content) {
+          //     await Promise.all(pool.publish(Object.keys(relays), content))
+          //   }
+          //   console.info('Response sent to user:', content)
+          // }
           // }
 
           //   // this format will json format
           //   if (payload.toLowerCase().includes('send')) {
-          //     const response = await sendTransaction(event)
-          //     console.log(response)
-          //   }
+          // const response = await sendTransaction(event)
+          const result = await sendTransaction(event)
+          // console.log(result)
+
+          // if (result) {
+          //   console.log(result.response)
+
+          // const content = JSON.parse(result.response)
+          // if (content) {
+          //   await Promise.all(pool.publish(Object.keys(relays), content))
+          // }
+          // console.info('Response sent to user:', content)
         }
+        // }
+        // }
       },
       // oneose() {
       //   subDmOnly.close();
@@ -476,7 +496,7 @@ export async function generateUserWallet(event: EventTemplate) {
   }
 }
 
-export async function sendTransaction(event: EventTemplate) {
+export async function sendTransaction(event: VerifiedEvent) {
   if (!GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
   let litNodeClient: LitNodeClient
 
@@ -513,19 +533,29 @@ export async function sendTransaction(event: EventTemplate) {
 
     const pkpAddress = ethers.utils.computeAddress(`0x${PKP_PUBLIC_KEY}`)
 
-    const accessControlConditions = [
-      {
-        contractAddress: '',
-        standardContractType: '',
-        chain: 'ethereum',
-        method: '',
-        parameters: [':userAddress'],
-        returnValueTest: {
-          comparator: '=',
-          value: pkpAddress,
-        },
-      },
-    ]
+    const sessionSig = getFirstSessionSig(sessionSigs)
+
+    const storedKeyMetadata = await fetchPrivateKey({
+      id: WRAPPED_KEY_ID,
+      sessionSig: sessionSig,
+      litNetwork: litNodeClient.config.litNetwork,
+    })
+
+    const allowPkpAddressToDecrypt = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
+
+    // const accessControlConditions = [
+    //   {
+    //     contractAddress: '',
+    //     standardContractType: '',
+    //     chain: 'ethereum',
+    //     method: '',
+    //     parameters: [':userAddress'],
+    //     returnValueTest: {
+    //       comparator: '=',
+    //       value: pkpAddress,
+    //     },
+    //   },
+    // ]
 
     const getChainInfo = (chain: keyof typeof LIT_CHAINS) => {
       if (LIT_CHAINS[chain] === undefined)
@@ -539,45 +569,69 @@ export async function sendTransaction(event: EventTemplate) {
 
     const chainInfo = getChainInfo('yellowstone')
 
-    // const ethersProvider = new ethers.providers.JsonRpcProvider(chainInfo.rpcUrl)
+    const ethersProvider = new ethers.providers.JsonRpcProvider(chainInfo.rpcUrl)
 
     // const ethAddress = ethers.utils.computeAddress('0x04ab898b2a19e08a57b958435fbf567addbfa74c74a243407c1e30e1bbfa87f116987c012698cb4d02bada37def4accec0c15af67822648b3a0304750f8957a21c')
 
-    const unsignedTransaction = {
-      to: ethersSigner.address,
-      value: 1,
-      gasLimit: 21_000,
-      gasPrice: (await ethersSigner.getGasPrice()).toHexString(),
-      // nonce: await ethersProvider.getTransactionCount(ethAddress),
-      nonce: await litNodeClient.getLatestBlockhash(),
-      chainId: chainInfo.chainId,
-      chain: 'yellowstone',
-    }
+    const ethAddress = ethers.utils.computeAddress(`0x${PKP_PUBLIC_KEY}`)
 
-    const sendTransactionWithLitAction = await litNodeClient.executeJs({
-      sessionSigs,
-      // ipfsId: GENERATE_WALLET_IPFS_ID,
-      code: litActionCodeSendTransaction,
-      jsParams: {
-        publicKey: PKP_PUBLIC_KEY,
-        ciphertext:
-          'jAObGwunr9xi4YbNdJ6vAHtPFJmNSfyBu445KT8jJ+Z51TGJDJ60eeXd43wa+i5xBP0hseZ0C6O2Xi36vhIP0AdCaIvqNb4/A0wusdasgq5HOLVaGBpCIOZfK3Tb9bPYhxE/9w43aDLb+O+5U9ybFNZ7/LGLrIFKdjMFZe1/2PDzdnBNYASkn5NBdDgMSJqV9GcUwNAaFkgC',
-        dataToEncryptHash: 'fba3dd2b93d7e60ba3baa762c43066a09ec6991624e23ef0a5c600d63c3d24d9',
-        pkpAddress,
-        accessControlConditions,
-        nostrRequest: event,
-        unsignedTransaction,
-        supabase: {
-          url: SUPABASE_URL,
-          serviceRole: SUPABASE_SERVICE_ROLE_KEY,
-          email: SUPABASE_ADMIN_EMAIL,
-          password: SUPABASE_ADMIN_PASSWORD,
-        },
-      },
+    // const unsignedTransaction = {
+    //   toAddress: ethersSigner.address,
+    //   value: '0.0001',
+    //   gasLimit: 21_000,
+    //   // gasPrice: (await ethersSigner.getGasPrice()).toHexString(),
+    //   nonce: await ethersProvider.getTransactionCount(ethAddress),
+    //   // nonce: await litNodeClient.getLatestBlockhash(),
+    //   chainId: chainInfo.chainId,
+    //   chain: 'yellowstone',
+    // }
+
+    // const litTransaction = {
+    //   chainId: chainInfo.chainId,
+    //   chain: "yellowstone",
+    //   toAddress: ethersSigner.address,
+    //   value: "0.0001",
+    //   // Manually specifying because the generated private key doesn't hold a balance and ethers
+    //   // fails to estimate gas since the tx simulation fails with insufficient balance error
+    //   gasLimit: 21_000,
+    // };
+
+    console.log('signedTransaction read ....')
+    const signedTransaction = await signTransactionWithEncryptedKey({
+      pkpSessionSigs: sessionSigs,
+      network: 'nostr',
+      id: WRAPPED_KEY_ID,
+      unsignedTransaction: event,
+      broadcast: false,
+      litNodeClient,
+      
     })
 
-    console.log('generatesend.response', JSON.stringify(sendTransactionWithLitAction, null, 2))
-    return sendTransactionWithLitAction
+    console.log('signedTransaction', signedTransaction)
+
+    // const sendTransactionWithLitAction = await litNodeClient.executeJs({
+    //   sessionSigs,
+    //   // ipfsId: GENERATE_WALLET_IPFS_ID,
+    //   code: litActionCodeSendTransaction,
+    //   jsParams: {
+    //     publicKey: PKP_PUBLIC_KEY,
+    //     ciphertext: storedKeyMetadata.ciphertext,
+    //     dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
+    //     pkpAddress,
+    //     accessControlConditions: [allowPkpAddressToDecrypt],
+    //     nostrRequest: event,
+    //     unsignedTransaction,
+    //     supabase: {
+    //       url: SUPABASE_URL,
+    //       serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+    //       email: SUPABASE_ADMIN_EMAIL,
+    //       password: SUPABASE_ADMIN_PASSWORD,
+    //     },
+    //   },
+    // })
+
+    // console.log('generatesend.response', JSON.stringify(sendTransactionWithLitAction, null, 2))
+    return
   } catch (error) {
     console.error(error)
   } finally {

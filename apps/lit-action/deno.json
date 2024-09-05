@@ -5,6 +5,7 @@
     "build-nostr-key": "deno run --allow-read --allow-write --allow-env --allow-run src/generate-nostr-private-key/esbuild.ts",
     "build-nostr-metadata": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-nostr-metadata/esbuild.ts",
     "build-nostr-relays": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-nostr-relay-list/esbuild.ts",
+    "build-message-handler": "deno run --allow-read --allow-write --allow-env --allow-run src/message-handler/esbuild.ts",
     "build-sign-transaction": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-transaction/esbuild.ts"
   },
   "imports": {
@@ -20,6 +21,7 @@
     "@std/assert": "jsr:@std/assert@1",
     "@std/crypto": "jsr:@std/crypto@^1.0.3",
     "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.45.3",
+    "ethers": "npm:ethers@^5.7.2",
     "fs": "npm:fs@^0.0.2",
     "siwe": "npm:siwe@^2.3.2"
   },
