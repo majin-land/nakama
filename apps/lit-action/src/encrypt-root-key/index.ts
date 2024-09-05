@@ -143,7 +143,9 @@ const go = async () => {
     // Decrypt the content of the nostr request
     const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content);
     console.info('Received DM:', payload);
-    
+    if (!payload.toLocaleLowerCase().startsWith('register')) {
+      return 
+    } 
     // Store encrypted keystore in Supabase
     const response = await Lit.Actions.runOnce(
       { waitForResponse: true, name: 'storeEncryptedKeystore' },

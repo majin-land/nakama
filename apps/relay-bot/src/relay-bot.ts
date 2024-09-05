@@ -157,19 +157,14 @@ export async function startService({
           //     }
           //   }
           // if (payload.toLowerCase().includes('register')) {
-          const response = await generateUserWallet(event)
-          if (response) {
-            const content =
-              typeof response === 'string' ? response : JSON.stringify(response) || 'registered'
-            const postEvent: EventTemplate = {
-              kind: EncryptedDirectMessage,
-              content,
-              tags: [['p', event.pubkey]],
-              created_at: Math.floor(Date.now() / 1000),
+          const result = await generateUserWallet(event)
+          if (result) {
+            console.log(result.response)
+            
+            const content = JSON.parse(result.response)
+            if (content) {
+              await Promise.all(pool.publish(Object.keys(relays), content))
             }
-            // await Promise.all(
-            //   pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
-            // )
             console.info('Response sent to user:', content)
           }
           // }
