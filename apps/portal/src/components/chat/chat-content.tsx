@@ -2,7 +2,7 @@ import { Avatar, Box, IconButton, InputBase, Typography } from '@mui/material'
 import React from 'react'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import SendIcon from '@mui/icons-material/Send'
-import ChatItem from '../chat-list/chat-item'
+import ChatItem from './chat-item'
 
 const chatItms = [
   {
