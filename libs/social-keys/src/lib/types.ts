@@ -230,8 +230,14 @@ export interface NostrMetadata {
   website: `https://${string}`
 }
 
+export interface NostrRelays { [url: string]: { read: boolean; write: boolean } }
+
 export interface SignMetadataParamsSupported extends SignTransactionParams {
   unsignedMetadata: NostrMetadata
+}
+export interface SignRelayListParamsSupported extends SignTransactionParams {
+  nostr_write_relays: NostrRelays
+  nostr_read_relays: NostrRelays
 }
 
 export interface SignTransactionParamsSupportedEvm extends SignTransactionParams {
@@ -256,3 +262,4 @@ export type SignTransactionWithEncryptedKeyParams =
   | SignTransactionParamsSupportedSolana
 
 export type SignMetadataWithEncryptedKeyParams = SignMetadataParamsSupported
+export type SignRelayListWithEncryptedKeyParams = SignRelayListParamsSupported

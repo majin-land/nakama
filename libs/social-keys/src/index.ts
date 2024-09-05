@@ -9,6 +9,7 @@ import {
   storeEncryptedKey,
   listEncryptedKeyMetadata,
   signMetadataWithEncryptedKey,
+  signRelayListWithEncryptedKey,
 } from './lib/api'
 import {
   CHAIN_ETHEREUM,
@@ -56,6 +57,7 @@ import type {
   ImportPrivateKeyResult,
   NostrMetadata,
   SignMetadataWithEncryptedKeyParams,
+  SignRelayListWithEncryptedKeyParams,
 } from './lib/types'
 
 export const constants = {
@@ -78,6 +80,7 @@ export const api = {
   signTransactionWithEncryptedKey,
   storeEncryptedKey,
   signMetadataWithEncryptedKey,
+  signRelayListWithEncryptedKey,
   fetchPrivateKey,
 }
 
@@ -109,6 +112,7 @@ export {
   getBaseTransactionForNetwork,
   NostrMetadata,
   SignMetadataWithEncryptedKeyParams,
+  SignRelayListWithEncryptedKeyParams,
   getPkpAccessControlCondition,
   getFirstSessionSig,
 }
