@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 export default function Home() {
   const user = false
 
-  if (!user) {
+  if (user) {
     redirect('/login')
   }
 
