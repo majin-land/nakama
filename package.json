@@ -31,6 +31,8 @@
     "@mui/material": "^5.16.6",
     "@mui/material-nextjs": "^5.16.6",
     "@noble/hashes": "^1.4.0",
+    "@nostr-dev-kit/ndk": "^2.10.0",
+    "@nostr-dev-kit/ndk-react": "^0.1.1",
     "@simplewebauthn/browser": "^10.0.0",
     "@supabase/supabase-js": "^2.45.3",
     "apisauce": "^3.0.1",

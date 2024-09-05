@@ -5,6 +5,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 
 import theme from '@/theme'
+import { NDKProvider } from '@/hooks/useNDK'
 
 export const metadata: Metadata = {
   title: 'Nakama',
@@ -18,7 +19,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
           <ThemeProvider theme={theme}>
             {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
             <CssBaseline />
-            {props.children}
+            <NDKProvider>{props.children}</NDKProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
