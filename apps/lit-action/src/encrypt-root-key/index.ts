@@ -95,20 +95,22 @@ const go = async () => {
       return;
     }
 
+    console.info('decryptedPrivateKey',  decryptedPrivateKey)
     // Extract the nostr private key
     let nostrPrivateKey;
     try {
-      nostrPrivateKey = '0x8df6f7871767956deff0bc2c9bb1d570f1e323ff5bca3ca23079a2fe46efa58a'.slice(2);
-      // nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length);
+      nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length).slice(2);
     } catch (err) {
       Lit.Actions.setResponse({ response: err.message });
       return;
     }
 
+    // console.log(nostrPrivateKey, 'nostrPrivateKeynostrPrivateKey 2')
+    // Lit.Actions.setResponse({ response: nostrPrivateKey });
+    // return 
     // Decrypt the content of the nostr request
     const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content);
     console.info('Received DM:', payload);
-
     // Encrypt and store user keystore
     const userKeystore = await Lit.Actions.runOnce(
       { waitForResponse: true, name: 'encryptedPrivateKey' },

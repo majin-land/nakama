@@ -1,9 +1,21 @@
 import * as ethers from 'ethers'
-import { SimplePool } from 'nostr-tools'
+import { SimplePool, VerifiedEvent } from 'nostr-tools'
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
+import { EncryptedDirectMessage, Metadata, RelayList } from 'nostr-tools/kinds'
+import { npubEncode } from 'nostr-tools/nip19'
+
+import {
+  getPublicKey,
+  nip04,
+  SimplePool,
+  finalizeEvent,
+  verifyEvent,
+  type EventTemplate,
+} from 'nostr-tools'
+
 import {
   api,
   SignMetadataWithEncryptedKeyParams,
@@ -18,6 +30,12 @@ const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 
 const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
+
+export interface PartialRelayListEvent extends EventTemplate {
+  kind: typeof RelayList
+  tags: (['r', string] | ['r', string, 'read' | 'write'])[]
+  content: ''
+}
 
 export const action = async (pkpPublicKey: string, memo: string, broadcastTransaction: boolean) => {
   let litNodeClient: LitNodeClient
@@ -68,7 +86,7 @@ export const action = async (pkpPublicKey: string, memo: string, broadcastTransa
     )
 
     const unsignedMetadata = {
-      name: 'Test-Relay-Bot',
+      name: 'My-Relay-Bot 1',
       about: 'Test-Relay-Bot is a bot for receive a payload from Test-Bot',
       nip05: 'Test-Relay-Bot',
       lud06: 'Test-Relay-Bot',
@@ -103,8 +121,42 @@ export const action = async (pkpPublicKey: string, memo: string, broadcastTransa
   }
 }
 
+export async function PushToNostrRelay(
+  signedMetadata: VerifiedEvent,
+  opts: {
+    pool?: SimplePool
+    nostr_relays?: { [url: string]: { read: boolean; write: boolean } }
+  } = {},
+) {
+  const { pool = new SimplePool(), nostr_relays = {} } = opts
+
+  // See: https://github.com/nostr-protocol/nips/blob/master/65.md#when-to-use-read-and-write
+  const nostr_write_relays = Object.entries(nostr_relays)
+    .filter(([_url, r]) => r.write)
+    .map(([url, _r]) => url)
+  if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.damus.io')
+
+  // Write relay list
+  const nostr_read_relays = Object.entries(nostr_relays)
+    .filter(([_url, r]) => r.read)
+    .map(([url, _r]) => url)
+  if (!nostr_read_relays.length) nostr_read_relays.push('wss://relay.damus.io')
+
+  await Promise.all(pool.publish(nostr_write_relays, signedMetadata))
+  nostr_read_relays.forEach((relay) => {
+    nostr_relays[relay] = nostr_write_relays.includes(relay)
+      ? { read: true, write: true }
+      : { read: true, write: false }
+  })
+
+  console.log('✅ published to relay with npub:', npubEncode(signedMetadata.pubkey))
+
+  return nostr_relays
+}
+
 export default async function setup() {
-  const pool = new SimplePool()
   const signedMetadata = await action(PKP_KEY, 'nostr-bot', true)
-  console.log(signedMetadata, 'Metadata Signed!')
+  console.log(JSON.parse(signedMetadata), 'Metadata Signed!')
+  PushToNostrRelay(JSON.parse(signedMetadata)).then(console.log)
+  // await Promise.all(pool.publish(nostr_write_relays, JSON.parse(signedMetadata))).then(console.log)
 }

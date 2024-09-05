@@ -4046,6 +4046,7 @@
   },
   "redirects": {
     "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.45.3",
+    "https://esm.sh/nostr-tools": "https://esm.sh/nostr-tools@2.7.2",
     "https://esm.sh/nostr-tools/kinds": "https://esm.sh/nostr-tools@2.7.2/kinds"
   },
   "remote": {

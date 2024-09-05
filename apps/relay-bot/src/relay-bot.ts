@@ -83,11 +83,13 @@ export async function startService({
     kinds: [Metadata],
     authors: [nostrPubkey],
   })
+
+  console.log(profileMetadata, 'profileMetadataprofileMetadataprofileMetadata')
   if (!profileMetadata) {
     const metadataEvent: EventTemplate = {
       kind: Metadata,
       content: JSON.stringify({
-        name: 'Test-Relay-Bot',
+        name: 'Test-Relay-Bot 2',
         about: 'Test-Relay-Bot is a bot for receive a payload from Test-Bot',
         nip05: 'Test-Relay-Bot',
         lud06: 'Test-Relay-Bot',
@@ -98,8 +100,9 @@ export async function startService({
       ],
       created_at: Math.floor(Date.now() / 1000),
     }
-    await Promise.all(pool.publish(Object.keys(relays), finalizeEvent(metadataEvent, nostrSeckey)))
-    console.info('Profile Metadata published')
+    // console.log(nostrPubkey)
+    // await Promise.all(pool.publish(Object.keys(relays), finalizeEvent(metadataEvent, nostrSeckey)))
+    // console.info('Profile Metadata published', finalizeEvent(metadataEvent, nostrSeckey))
   } else {
     console.info('Profile Metadata exists', profileMetadata)
   }
@@ -109,7 +112,7 @@ export async function startService({
     [
       {
         kinds: [EncryptedDirectMessage], // DMs
-        '#p': [nostrPubkey], // only want DMs for us
+        '#p': [process.env.NOSTR_PUBKEY], // only want DMs for us
         since: Math.floor(Date.now() / 1000), // only want DMs since now
       },
     ],
@@ -117,50 +120,43 @@ export async function startService({
       async onevent(event) {
         console.info('Received DM:', event)
         if (verifyEvent(event)) {
-          const payload = await nip04.decrypt(nostrSeckey, event.pubkey, event.content)
-          console.info('Payload:', payload, nostrSeckey, 'nostrSeckey')
-          // JSON.parse(payload)
-          if (payload.toLowerCase().includes('get-key')) {
-            console.log('excecute... getWrappedKey')
-            const response = await getWrappedKey()
-            console.log('responseresponse... getWrappedKey', response)
-            if (response) {
-              const content = JSON.stringify(response)
-              const postEvent: EventTemplate = {
-                kind: EncryptedDirectMessage,
-                content,
-                tags: [['p', event.pubkey]],
-                created_at: Math.floor(Date.now() / 1000),
-              }
-              await Promise.all(
-                pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
-              )
-              console.info('Response sent to user:', content)
-            }
-          }
-          if (payload.toLowerCase().includes('generate-key')) {
-            const response = await generateWrappedKey(npubEncode(nostrPubkey))
-            if (response) {
-              const content = `✅ Generated wrapped key with id: ${response.id} and public key: ${response.generatedPublicKey}`
-              const postEvent: EventTemplate = {
-                kind: EncryptedDirectMessage,
-                content,
-                tags: [['p', event.pubkey]],
-                created_at: Math.floor(Date.now() / 1000),
-              }
-              await Promise.all(
-                pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
-              )
-            }
-          }
-          if (payload.toLowerCase().includes('register')) {
-            // const requestEvent: EventTemplate = {
-            //   kind: EncryptedDirectMessage,
-            //   content: payload,
-            //   tags: [['p', event.pubkey]],
-            //   created_at: Math.floor(Date.now() / 1000),
-            // }
-
+          // const payload = await nip04.decrypt(nostrSeckey, event.pubkey, event.content)
+        //   console.info('Payload:', payload, nostrSeckey, 'nostrSeckey')
+        //   // JSON.parse(payload)
+        //   if (payload.toLowerCase().includes('get-key')) {
+        //     console.log('excecute... getWrappedKey')
+        //     const response = await getWrappedKey()
+        //     console.log('responseresponse... getWrappedKey', response)
+        //     if (response) {
+        //       const content = JSON.stringify(response)
+        //       const postEvent: EventTemplate = {
+        //         kind: EncryptedDirectMessage,
+        //         content,
+        //         tags: [['p', event.pubkey]],
+        //         created_at: Math.floor(Date.now() / 1000),
+        //       }
+        //       await Promise.all(
+        //         pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+        //       )
+        //       console.info('Response sent to user:', content)
+        //     }
+        //   }
+        //   if (payload.toLowerCase().includes('generate-key')) {
+        //     const response = await generateWrappedKey(npubEncode(nostrPubkey))
+        //     if (response) {
+        //       const content = `✅ Generated wrapped key with id: ${response.id} and public key: ${response.generatedPublicKey}`
+        //       const postEvent: EventTemplate = {
+        //         kind: EncryptedDirectMessage,
+        //         content,
+        //         tags: [['p', event.pubkey]],
+        //         created_at: Math.floor(Date.now() / 1000),
+        //       }
+        //       await Promise.all(
+        //         pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+        //       )
+        //     }
+        //   }
+          // if (payload.toLowerCase().includes('register')) {
             const response = await generateUserWallet(event)
             if (response) {
               const content =
@@ -171,18 +167,18 @@ export async function startService({
                 tags: [['p', event.pubkey]],
                 created_at: Math.floor(Date.now() / 1000),
               }
-              await Promise.all(
-                pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
-              )
+              // await Promise.all(
+              //   pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+              // )
               console.info('Response sent to user:', content)
-            }
-          }
+              }
+          // }
 
-          // this format will json format
-          if (payload.toLowerCase().includes('send')) {
-            const response = await sendTransaction(event)
-            console.log(response)
-          }
+        //   // this format will json format
+        //   if (payload.toLowerCase().includes('send')) {
+        //     const response = await sendTransaction(event)
+        //     console.log(response)
+        //   }
         }
       },
       // oneose() {
@@ -446,20 +442,6 @@ export async function generateUserWallet(event: EventTemplate) {
 
     const pkpAddress = ethers.utils.computeAddress(`0x${PKP_PUBLIC_KEY}`)
 
-    const accessControlConditions = [
-      {
-        contractAddress: '',
-        standardContractType: '',
-        chain: 'ethereum',
-        method: '',
-        parameters: [':userAddress'],
-        returnValueTest: {
-          comparator: '=',
-          value: pkpAddress,
-        },
-      },
-    ]
-
     const sessionSig = getFirstSessionSig(sessionSigs)
 
     const storedKeyMetadata = await fetchPrivateKey({
@@ -499,7 +481,6 @@ export async function generateUserWallet(event: EventTemplate) {
         dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
         pkpAddress,
         accessControlConditions: [allowPkpAddressToDecrypt],
-        unsignedMetadata: 'hello',
         nostrRequest: event,
         supabase: {
           url: SUPABASE_URL,
