@@ -28,7 +28,6 @@ const {
   generateNostrPrivateKey,
   signMetadataWithEncryptedKey,
   signRelayListWithEncryptedKey,
-  getEncryptedKey,
 } = api
 
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
@@ -153,7 +152,7 @@ export const action = async (
     console.log('✅ Published relay list')
 
     console.log('✅ published to relay with npub:', npubEncode(signedMetadata.pubkey))
-
+    console.log('✅ published pubkey:', signedMetadata.pubkey)
     return npubEncode(signedMetadata.pubkey)
   } catch (error) {
     console.error(error)
