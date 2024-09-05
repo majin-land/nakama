@@ -1,10 +1,9 @@
 import * as ethers from 'ethers'
-import { SimplePool, type EventTemplate } from 'nostr-tools'
+import { SimplePool } from 'nostr-tools'
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
-import { RelayList } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
 
 import {
@@ -78,10 +77,10 @@ export const action = async (
     )
 
     const unsignedMetadata = {
-      name: 'Relay-bot-test',
-      about: 'Test-Relay-Bot is a bot for receive a payload from Test-Bot',
-      nip05: 'Test-Relay-Bot',
-      lud06: 'Test-Relay-Bot',
+      name: 'RELAY_BOT_TEST',
+      about: 'RELAY_BOT_TEST is a bot for receive a payload from Test-Bot',
+      nip05: 'RELAY_BOT_TEST',
+      lud06: 'RELAY_BOT_TEST',
     }
 
     console.log('🔄 Signing metadata with Wrapped Key...')
@@ -99,13 +98,13 @@ export const action = async (
     const nostr_write_relays = Object.entries(nostr_relays)
       .filter(([_url, r]) => r.write)
       .map(([url, _r]) => url)
-    if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.damus.io')
+    if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.primal.net')
 
     // Write relay list
     const nostr_read_relays = Object.entries(nostr_relays)
       .filter(([_url, r]) => r.read)
       .map(([url, _r]) => url)
-    if (!nostr_read_relays.length) nostr_read_relays.push('wss://relay.damus.io')
+    if (!nostr_read_relays.length) nostr_read_relays.push('wss://relay.primal.net')
 
     console.log('🔄 Signing relay list with Wrapped Key...')
     const verifiedRelayList = await signRelayListWithEncryptedKey({

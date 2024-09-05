@@ -32,13 +32,10 @@ export const action = async (
 
   console.info('✅ Nostr bot run with Npub: ', npubEncode(wrappedPubKey))
 
-  // See: https://github.com/nostr-protocol/nips/blob/master/65.md#when-to-use-read-and-write
   const nostr_write_relays = Object.entries(nostr_relays)
     .filter(([_url, r]) => r.write)
     .map(([url, _r]) => url)
-  if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.damus.io')
-
-  console.log(nostr_write_relays)
+  if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.primal.net')
 
   try {
     const ethersSigner = new ethers.Wallet(
@@ -61,7 +58,7 @@ export const action = async (
         await EthWalletProvider.authenticate({
           signer: ethersSigner,
           litNodeClient,
-          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(),
         }),
       ],
       resourceAbilityRequests: [
@@ -70,78 +67,79 @@ export const action = async (
           ability: LitAbility.LitActionExecution,
         },
       ],
-      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(),
     })
     console.log('✅ Got PKP Session Sigs')
 
     console.log('🔄 Getting Relay list...')
-    const relayList = await pool.get(nostr_write_relays, {
-      kinds: [RelayList],
-      authors: [wrappedPubKey],
-    })
-    console.log(`✅ Got Relay list`)
-
-    relayList.tags
-      .filter((tag) => tag[0] === 'r')
-      .forEach((tag) => {
-        if (tag.length === 3) {
-          const [, relay, typ] = tag
-          if (typ === 'read') {
-            nostr_relays[relay] = { read: true, write: false }
-          } else if (typ === 'write') {
-            nostr_relays[relay] = { read: false, write: false }
-          }
-        } else if (tag.length === 2) {
-          const [, relay] = tag
-          nostr_relays[relay] = { read: true, write: true }
-        }
+    try {
+      const relayList = await pool.get(nostr_write_relays, {
+        kinds: [RelayList],
+        authors: [wrappedPubKey],
       })
 
-    console.log('Listen / Subscribe to DM...')
-    const subDmOnly = pool.subscribeMany(
-      Object.keys(nostr_relays),
-      [
-        {
-          kinds: [EncryptedDirectMessage], // DMs
-          '#p': [wrappedPubKey], // only want DMs for us
-          since: Math.floor(Date.now() / 1000), // only want DMs since now
-        },
-      ],
-      {
-        async onevent(event) {
-          console.info('Received DM:', event)
-          if (verifyEvent(event)) {
-            console.log('🔄 Getting message with message handler...')
-            const verifiedMessage = await signNostrEventWithEncryptedKey({
-              pkpSessionSigs,
-              network: 'nostr',
-              id: wrappedKeyId,
-              nostrEvent: event,
-              litNodeClient,
-            } as unknown as SignNostrEventWithEncryptedKeyParams)
-            console.log('✅ Message: ', JSON.parse(verifiedMessage))
+      relayList.tags
+        .filter((tag) => tag[0] === 'r')
+        .forEach((tag) => {
+          if (tag.length === 3) {
+            const [, relay, typ] = tag
+            if (typ === 'read') {
+              nostr_relays[relay] = { read: true, write: false }
+            } else if (typ === 'write') {
+              nostr_relays[relay] = { read: false, write: false }
+            }
+          } else if (tag.length === 2) {
+            const [, relay] = tag
+            nostr_relays[relay] = { read: true, write: true }
           }
-
-        //   (info) {
-        //     1. register
-        //     2. send transaction
-        //     3. top up
-        //     4. voucer
-        //   }
-        },
-        // oneose() {
-        //   subDmOnly.close();
-        // },
-      },
-    )
-
-    return {
-      pool,
-      subs: [subDmOnly],
+        })
+      console.log(`✅ Got Relay list`)
+    } catch (error) {
+      console.error('Error fetching relay list:', error)
     }
 
+    // Subscription logic here
+    console.log('Listen / Subscribe to DM...')
+    try {
+      const subDmOnly = pool.subscribeMany(
+        Object.keys(nostr_relays),
+        [
+          {
+            kinds: [EncryptedDirectMessage],
+            '#p': [wrappedPubKey],
+            since: Math.floor(Date.now() / 1000),
+          },
+        ],
+        {
+          async onevent(event) {
+            try {
+              console.info('Received DM:', event)
+              if (verifyEvent(event)) {
+                if (!litNodeClient.ready) {
+                  console.log('🔄 Reconnecting to Lit network before handling the event...')
+                  await litNodeClient.connect()
+                  console.log('✅ Reconnected to Lit network')
+                }
+                const verifiedMessage = await signNostrEventWithEncryptedKey({
+                  pkpSessionSigs,
+                  id: wrappedKeyId,
+                  nostrEvent: event,
+                  litNodeClient,
+                } as unknown as SignNostrEventWithEncryptedKeyParams)
+                console.log('✅ Message: ', JSON.parse(verifiedMessage))
+              }
+            } catch (error) {
+              console.error('Error handling event:', error)
+            }
+          },
+        },
+      )
+      return { pool, subs: [subDmOnly] }
+    } catch (error) {
+      console.error('Error subscribing to DM:', error)
+    }
   } catch (error) {
-    console.error(error)
+    console.error('Error in action:', error)
   } finally {
     litNodeClient?.disconnect()
   }

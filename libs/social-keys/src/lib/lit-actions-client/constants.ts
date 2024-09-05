@@ -29,13 +29,13 @@ const LIT_ACTION_CID_REPOSITORY: LitCidRepository = Object.freeze({
   messageHandler: Object.freeze({
     evm: '',
     solana: '',
-    nostr: 'QmZTp1WMtQhpkLcJpjdm6jrEcrULzam5qoYxBx4ZpgYFdR',
+    nostr: 'QmZV8vFyUntMsxgbAvYJ3BZbVsQqKh8TwUY78Bg2VPqn5s',
   }),
   signMetadata: Object.freeze({
     evm: '',
     solana: '',
     nostr: 'QmZTp1WMtQhpkLcJpjdm6jrEcrULzam5qoYxBx4ZpgYFdR',
-  })
+  }),
 })
 
 export { LIT_ACTION_CID_REPOSITORY }
