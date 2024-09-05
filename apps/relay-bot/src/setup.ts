@@ -1,34 +1,19 @@
 import * as ethers from 'ethers'
+import { SimplePool, type EventTemplate } from 'nostr-tools'
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork } from '@lit-protocol/constants'
 import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
-import { EncryptedDirectMessage, Metadata, RelayList } from 'nostr-tools/kinds'
+import { RelayList } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
-
-import {
-  getPublicKey,
-  nip04,
-  SimplePool,
-  finalizeEvent,
-  verifyEvent,
-  type EventTemplate,
-  VerifiedEvent,
-} from 'nostr-tools'
 
 import {
   api,
   SignMetadataWithEncryptedKeyParams,
   SignRelayListWithEncryptedKeyParams,
-  getPkpAccessControlCondition,
 } from '@nakama/social-keys'
 
-
-const {
-  generateNostrPrivateKey,
-  signMetadataWithEncryptedKey,
-  signRelayListWithEncryptedKey,
-} = api
+const { generateNostrPrivateKey, signMetadataWithEncryptedKey, signRelayListWithEncryptedKey } = api
 
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
@@ -112,8 +97,8 @@ export const action = async (
 
     // See: https://github.com/nostr-protocol/nips/blob/master/65.md#when-to-use-read-and-write
     const nostr_write_relays = Object.entries(nostr_relays)
-    .filter(([_url, r]) => r.write)
-    .map(([url, _r]) => url)
+      .filter(([_url, r]) => r.write)
+      .map(([url, _r]) => url)
     if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.damus.io')
 
     // Write relay list
