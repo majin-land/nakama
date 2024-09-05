@@ -19,12 +19,17 @@ import {
 import {
   api,
   SignMetadataWithEncryptedKeyParams,
+  SignRelayListWithEncryptedKeyParams,
   getPkpAccessControlCondition,
 } from '@nakama/social-keys'
 
-import { loadNostrRelayList } from './utils'
 
-const { generateNostrPrivateKey, signMetadataWithEncryptedKey, getEncryptedKey } = api
+const {
+  generateNostrPrivateKey,
+  signMetadataWithEncryptedKey,
+  signRelayListWithEncryptedKey,
+  getEncryptedKey,
+} = api
 
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
@@ -37,8 +42,17 @@ export interface PartialRelayListEvent extends EventTemplate {
   content: ''
 }
 
-export const action = async (pkpPublicKey: string, memo: string, broadcastTransaction: boolean) => {
+export const action = async (
+  pkpPublicKey: string,
+  memo: string,
+  broadcastTransaction: boolean,
+  opts: {
+    pool?: SimplePool
+    nostr_relays?: { [url: string]: { read: boolean; write: boolean } }
+  } = {},
+) => {
   let litNodeClient: LitNodeClient
+  const { pool = new SimplePool(), nostr_relays = {} } = opts
 
   try {
     const ethersSigner = new ethers.Wallet(
@@ -86,14 +100,14 @@ export const action = async (pkpPublicKey: string, memo: string, broadcastTransa
     )
 
     const unsignedMetadata = {
-      name: 'My-Relay-Bot 1',
+      name: 'Relay-bot-test',
       about: 'Test-Relay-Bot is a bot for receive a payload from Test-Bot',
       nip05: 'Test-Relay-Bot',
       lud06: 'Test-Relay-Bot',
     }
 
     console.log('🔄 Signing metadata with Wrapped Key...')
-    const verifiedEvent = await signMetadataWithEncryptedKey({
+    const verifiedMetadata = await signMetadataWithEncryptedKey({
       pkpSessionSigs,
       network: 'nostr',
       id: wrappedKey.id,
@@ -103,17 +117,50 @@ export const action = async (pkpPublicKey: string, memo: string, broadcastTransa
     } as unknown as SignMetadataWithEncryptedKeyParams)
     console.log('✅ Signed metadata')
 
-    console.log('🔄 Getting Stored Key metadata...')
-    const storedKeyMetadata = await getEncryptedKey({
+    // See: https://github.com/nostr-protocol/nips/blob/master/65.md#when-to-use-read-and-write
+    const nostr_write_relays = Object.entries(nostr_relays)
+    .filter(([_url, r]) => r.write)
+    .map(([url, _r]) => url)
+    if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.damus.io')
+
+    // Write relay list
+    const nostr_read_relays = Object.entries(nostr_relays)
+      .filter(([_url, r]) => r.read)
+      .map(([url, _r]) => url)
+    if (!nostr_read_relays.length) nostr_read_relays.push('wss://relay.damus.io')
+
+    console.log('🔄 Signing relay list with Wrapped Key...')
+    const verifiedRelayList = await signRelayListWithEncryptedKey({
       pkpSessionSigs,
+      network: 'nostr',
       id: wrappedKey.id,
+      nostr_write_relays,
+      nostr_read_relays,
       litNodeClient,
+    } as unknown as SignRelayListWithEncryptedKeyParams)
+    console.log('✅ Signed relay list')
+
+    const signedRelayList = JSON.parse(verifiedRelayList)
+
+    console.log('🔄 Publishing relay list...')
+    await Promise.all(pool.publish(nostr_write_relays, signedRelayList))
+    console.log('✅ Published relay list')
+
+    nostr_read_relays.forEach((relay) => {
+      nostr_relays[relay] = nostr_write_relays.includes(relay)
+        ? { read: true, write: true }
+        : { read: true, write: false }
     })
-    console.log(`✅ Got Stored Key metadata`)
 
-    const accessControlCondition = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
+    const signedMetadata = JSON.parse(verifiedMetadata)
 
-    return verifiedEvent
+    console.log('🔄 Publishing metadata...')
+    await Promise.all(pool.publish(Object.keys(nostr_relays), signedMetadata))
+    console.log('✅ Published relay list')
+
+    console.log('✅ published to relay with npub:', npubEncode(signedMetadata.pubkey))
+
+    return npubEncode(signedMetadata.pubkey)
   } catch (error) {
     console.error(error)
   } finally {
@@ -121,42 +168,6 @@ export const action = async (pkpPublicKey: string, memo: string, broadcastTransa
   }
 }
 
-export async function PushToNostrRelay(
-  signedMetadata: VerifiedEvent,
-  opts: {
-    pool?: SimplePool
-    nostr_relays?: { [url: string]: { read: boolean; write: boolean } }
-  } = {},
-) {
-  const { pool = new SimplePool(), nostr_relays = {} } = opts
-
-  // See: https://github.com/nostr-protocol/nips/blob/master/65.md#when-to-use-read-and-write
-  const nostr_write_relays = Object.entries(nostr_relays)
-    .filter(([_url, r]) => r.write)
-    .map(([url, _r]) => url)
-  if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.damus.io')
-
-  // Write relay list
-  const nostr_read_relays = Object.entries(nostr_relays)
-    .filter(([_url, r]) => r.read)
-    .map(([url, _r]) => url)
-  if (!nostr_read_relays.length) nostr_read_relays.push('wss://relay.damus.io')
-
-  await Promise.all(pool.publish(nostr_write_relays, signedMetadata))
-  nostr_read_relays.forEach((relay) => {
-    nostr_relays[relay] = nostr_write_relays.includes(relay)
-      ? { read: true, write: true }
-      : { read: true, write: false }
-  })
-
-  console.log('✅ published to relay with npub:', npubEncode(signedMetadata.pubkey))
-
-  return nostr_relays
-}
-
 export default async function setup() {
-  const signedMetadata = await action(PKP_KEY, 'nostr-bot', true)
-  console.log(JSON.parse(signedMetadata), 'Metadata Signed!')
-  PushToNostrRelay(JSON.parse(signedMetadata)).then(console.log)
-  // await Promise.all(pool.publish(nostr_write_relays, JSON.parse(signedMetadata))).then(console.log)
+  await action(PKP_KEY, 'nostr-bot', true).then(console.log)
 }

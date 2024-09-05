@@ -160,7 +160,7 @@ export async function startService({
           const result = await generateUserWallet(event)
           if (result) {
             console.log(result.response)
-            
+
             const content = JSON.parse(result.response)
             if (content) {
               await Promise.all(pool.publish(Object.keys(relays), content))
