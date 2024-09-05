@@ -95,22 +95,6 @@ const go = async () => {
       return;
     }
 
-    console.info('decryptedPrivateKey',  decryptedPrivateKey)
-    // Extract the nostr private key
-    let nostrPrivateKey;
-    try {
-      nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length).slice(2);
-    } catch (err) {
-      Lit.Actions.setResponse({ response: err.message });
-      return;
-    }
-
-    // console.log(nostrPrivateKey, 'nostrPrivateKeynostrPrivateKey 2')
-    // Lit.Actions.setResponse({ response: nostrPrivateKey });
-    // return 
-    // Decrypt the content of the nostr request
-    const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content);
-    console.info('Received DM:', payload);
     // Encrypt and store user keystore
     const userKeystore = await Lit.Actions.runOnce(
       { waitForResponse: true, name: 'encryptedPrivateKey' },
@@ -147,8 +131,21 @@ const go = async () => {
       sigName: 'sigSecretKey',
     });
 
+    // Extract the nostr private key
+    let nostrPrivateKey;
+    try {
+      nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length).slice(2);
+    } catch (err) {
+      Lit.Actions.setResponse({ response: err.message });
+      return;
+    }
+
+    // Decrypt the content of the nostr request
+    const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content);
+    console.info('Received DM:', payload);
+    
     // Store encrypted keystore in Supabase
-    await Lit.Actions.runOnce(
+    const response = await Lit.Actions.runOnce(
       { waitForResponse: true, name: 'storeEncryptedKeystore' },
       async () => {
         supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
@@ -168,17 +165,17 @@ const go = async () => {
             content: await nip04Encrypt(nostrPrivateKey, nostrRequest.pubkey, message),
           };
 
-          Lit.Actions.setResponse({ response: JSON.stringify(finalizeEvent(nostrReply, nostrPrivateKey)) });
-          return;
+          throw JSON.stringify(finalizeEvent(nostrReply, nostrPrivateKey))
         }
 
-        const { error } = await supabaseClient.from('keystore').insert({
+        const { data, error } = await supabaseClient.from('keystore').insert({
           key: userKeystore,
           signature: sig,
           pubkey: nostrRequest.pubkey,
         });
 
         if (error) throw error;
+        return JSON.stringify(data)
       }
     );
 
@@ -202,7 +199,7 @@ const go = async () => {
     Lit.Actions.setResponse({ response: error.message });
   } finally {
     if (supabaseClient) {
-      await supabaseClient.auth.signOut();
+      supabaseClient.auth.signOut();
     }
   }
 };

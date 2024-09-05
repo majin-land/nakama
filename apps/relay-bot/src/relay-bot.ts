@@ -121,64 +121,64 @@ export async function startService({
         console.info('Received DM:', event)
         if (verifyEvent(event)) {
           // const payload = await nip04.decrypt(nostrSeckey, event.pubkey, event.content)
-        //   console.info('Payload:', payload, nostrSeckey, 'nostrSeckey')
-        //   // JSON.parse(payload)
-        //   if (payload.toLowerCase().includes('get-key')) {
-        //     console.log('excecute... getWrappedKey')
-        //     const response = await getWrappedKey()
-        //     console.log('responseresponse... getWrappedKey', response)
-        //     if (response) {
-        //       const content = JSON.stringify(response)
-        //       const postEvent: EventTemplate = {
-        //         kind: EncryptedDirectMessage,
-        //         content,
-        //         tags: [['p', event.pubkey]],
-        //         created_at: Math.floor(Date.now() / 1000),
-        //       }
-        //       await Promise.all(
-        //         pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
-        //       )
-        //       console.info('Response sent to user:', content)
-        //     }
-        //   }
-        //   if (payload.toLowerCase().includes('generate-key')) {
-        //     const response = await generateWrappedKey(npubEncode(nostrPubkey))
-        //     if (response) {
-        //       const content = `✅ Generated wrapped key with id: ${response.id} and public key: ${response.generatedPublicKey}`
-        //       const postEvent: EventTemplate = {
-        //         kind: EncryptedDirectMessage,
-        //         content,
-        //         tags: [['p', event.pubkey]],
-        //         created_at: Math.floor(Date.now() / 1000),
-        //       }
-        //       await Promise.all(
-        //         pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
-        //       )
-        //     }
-        //   }
+          //   console.info('Payload:', payload, nostrSeckey, 'nostrSeckey')
+          //   // JSON.parse(payload)
+          //   if (payload.toLowerCase().includes('get-key')) {
+          //     console.log('excecute... getWrappedKey')
+          //     const response = await getWrappedKey()
+          //     console.log('responseresponse... getWrappedKey', response)
+          //     if (response) {
+          //       const content = JSON.stringify(response)
+          //       const postEvent: EventTemplate = {
+          //         kind: EncryptedDirectMessage,
+          //         content,
+          //         tags: [['p', event.pubkey]],
+          //         created_at: Math.floor(Date.now() / 1000),
+          //       }
+          //       await Promise.all(
+          //         pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+          //       )
+          //       console.info('Response sent to user:', content)
+          //     }
+          //   }
+          //   if (payload.toLowerCase().includes('generate-key')) {
+          //     const response = await generateWrappedKey(npubEncode(nostrPubkey))
+          //     if (response) {
+          //       const content = `✅ Generated wrapped key with id: ${response.id} and public key: ${response.generatedPublicKey}`
+          //       const postEvent: EventTemplate = {
+          //         kind: EncryptedDirectMessage,
+          //         content,
+          //         tags: [['p', event.pubkey]],
+          //         created_at: Math.floor(Date.now() / 1000),
+          //       }
+          //       await Promise.all(
+          //         pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+          //       )
+          //     }
+          //   }
           // if (payload.toLowerCase().includes('register')) {
-            const response = await generateUserWallet(event)
-            if (response) {
-              const content =
-                typeof response === 'string' ? response : JSON.stringify(response) || 'registered'
-              const postEvent: EventTemplate = {
-                kind: EncryptedDirectMessage,
-                content,
-                tags: [['p', event.pubkey]],
-                created_at: Math.floor(Date.now() / 1000),
-              }
-              // await Promise.all(
-              //   pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
-              // )
-              console.info('Response sent to user:', content)
-              }
+          const response = await generateUserWallet(event)
+          if (response) {
+            const content =
+              typeof response === 'string' ? response : JSON.stringify(response) || 'registered'
+            const postEvent: EventTemplate = {
+              kind: EncryptedDirectMessage,
+              content,
+              tags: [['p', event.pubkey]],
+              created_at: Math.floor(Date.now() / 1000),
+            }
+            // await Promise.all(
+            //   pool.publish(Object.keys(relays), finalizeEvent(postEvent, nostrSeckey)),
+            // )
+            console.info('Response sent to user:', content)
+          }
           // }
 
-        //   // this format will json format
-        //   if (payload.toLowerCase().includes('send')) {
-        //     const response = await sendTransaction(event)
-        //     console.log(response)
-        //   }
+          //   // this format will json format
+          //   if (payload.toLowerCase().includes('send')) {
+          //     const response = await sendTransaction(event)
+          //     console.log(response)
+          //   }
         }
       },
       // oneose() {
@@ -448,28 +448,9 @@ export async function generateUserWallet(event: EventTemplate) {
       id: WRAPPED_KEY_ID,
       sessionSig: sessionSig,
       litNetwork: litNodeClient.config.litNetwork,
-    });
-  
-    const allowPkpAddressToDecrypt = getPkpAccessControlCondition(
-      storedKeyMetadata.pkpAddress
-    );
-
-  // const storedKeyMetadata = await fetchPrivateKey({
-  //   id,
-  //   sessionSig,
-  //   litNetwork: litNodeClient.config.litNetwork,
-  // });
-
-    console.log(storedKeyMetadata, 'storedKeyMetadataxxxxxxx', allowPkpAddressToDecrypt)
-
-    const exportedPrivateKey = await exportPrivateKey({
-      litNodeClient,
-      network: 'evm',
-      pkpSessionSigs: sessionSigs,
-      id: WRAPPED_KEY_ID,
     })
 
-    console.log(exportedPrivateKey, 'exportedPrivateKey')
+    const allowPkpAddressToDecrypt = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
 
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
