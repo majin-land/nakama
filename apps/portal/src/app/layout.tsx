@@ -5,9 +5,6 @@ import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 
 import theme from '@/theme'
-import Nav from '@/components/nav'
-import { Box } from '@mui/material'
-import { NavProvider } from '@/context/nav'
 
 export const metadata: Metadata = {
   title: 'Nakama',
