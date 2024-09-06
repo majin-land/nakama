@@ -8,6 +8,7 @@ export type LitActionType =
   | 'signRelayList'
   | 'messageHandler'
   | 'signMetadata'
+  | 'register'
 
 export type LitCidRepositoryEntry = Readonly<Record<Network, string>>
 

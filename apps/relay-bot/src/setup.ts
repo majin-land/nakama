@@ -77,10 +77,10 @@ export const action = async (
     )
 
     const unsignedMetadata = {
-      name: 'RELAY_BOT_TEST',
-      about: 'RELAY_BOT_TEST is a bot for receive a payload from Test-Bot',
-      nip05: 'RELAY_BOT_TEST',
-      lud06: 'RELAY_BOT_TEST',
+      name: 'TEST_BOT_RELAY',
+      about: 'TEST_BOT_RELAY is a bot for receive a payload from Test-Bot',
+      nip05: 'TEST_BOT_RELAY',
+      lud06: 'TEST_BOT_RELAY',
     }
 
     console.log('🔄 Signing metadata with Wrapped Key...')
@@ -98,13 +98,15 @@ export const action = async (
     const nostr_write_relays = Object.entries(nostr_relays)
       .filter(([_url, r]) => r.write)
       .map(([url, _r]) => url)
-    if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.primal.net')
+    if (!nostr_write_relays.length)
+      nostr_write_relays.push('wss://relay.damus.io', 'wss://relay.primal.net')
 
     // Write relay list
     const nostr_read_relays = Object.entries(nostr_relays)
       .filter(([_url, r]) => r.read)
       .map(([url, _r]) => url)
-    if (!nostr_read_relays.length) nostr_read_relays.push('wss://relay.primal.net')
+    if (!nostr_read_relays.length)
+      nostr_read_relays.push('wss://relay.damus.io', 'wss://relay.primal.net')
 
     console.log('🔄 Signing relay list with Wrapped Key...')
     const verifiedRelayList = await signRelayListWithEncryptedKey({
@@ -120,8 +122,12 @@ export const action = async (
     const signedRelayList = JSON.parse(verifiedRelayList)
 
     console.log('🔄 Publishing relay list...')
-    await Promise.all(pool.publish(nostr_write_relays, signedRelayList))
-    console.log('✅ Published relay list')
+    try {
+      await Promise.all(pool.publish(nostr_write_relays, signedRelayList))
+      console.log('✅ Published relay list')
+    } catch (error) {
+      console.error('Error publishing relay list:', error)
+    }
 
     nostr_read_relays.forEach((relay) => {
       nostr_relays[relay] = nostr_write_relays.includes(relay)
@@ -132,8 +138,12 @@ export const action = async (
     const signedMetadata = JSON.parse(verifiedMetadata)
 
     console.log('🔄 Publishing metadata...')
-    await Promise.all(pool.publish(Object.keys(nostr_relays), signedMetadata))
-    console.log('✅ Published relay list')
+    try {
+      await Promise.all(pool.publish(Object.keys(nostr_relays), signedMetadata))
+      console.log('✅ Published metadata')
+    } catch (error) {
+      console.error('Error publishing metadata:', error)
+    }
 
     console.log('✅ published to relay with npub:', npubEncode(signedMetadata.pubkey))
     console.log('✅ published pubkey:', signedMetadata.pubkey)

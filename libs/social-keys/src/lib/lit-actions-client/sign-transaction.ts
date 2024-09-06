@@ -21,6 +21,8 @@ interface SignTransactionWithLitActionParams {
   storedKeyMetadata: StoredKeyData;
   accessControlConditions: AccessControlConditions;
   broadcast: boolean;
+  seedCiphertext?: string;
+  seedDataToEncryptHash?: string;
 }
 
 export async function signTransactionWithLitAction({
@@ -31,7 +33,16 @@ export async function signTransactionWithLitAction({
   pkpSessionSigs,
   storedKeyMetadata: { ciphertext, dataToEncryptHash, pkpAddress },
   unsignedTransaction,
+  seedCiphertext,
+  seedDataToEncryptHash,
 }: SignTransactionWithLitActionParams): Promise<string> {
+
+  const seedEcryptedKey: { ciphertext?: string; dataToEncryptHash?: string } = {}
+  if (seedCiphertext && seedDataToEncryptHash) {
+    seedEcryptedKey.ciphertext = seedCiphertext 
+    seedEcryptedKey.dataToEncryptHash = seedDataToEncryptHash
+  }
+
   const result = await litNodeClient.executeJs({
     sessionSigs: pkpSessionSigs,
     ipfsId: litActionIpfsCid,
@@ -42,6 +53,7 @@ export async function signTransactionWithLitAction({
       unsignedTransaction,
       broadcast,
       accessControlConditions,
+      ...seedEcryptedKey
     },
     ipfsOptions: {
       overwriteCode:

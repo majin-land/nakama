@@ -13,6 +13,7 @@ import { hexToBytes } from '@noble/hashes/utils'
 import { EncryptedDirectMessage, Metadata, RelayList } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
 import type { SubCloser } from 'nostr-tools/abstract-pool'
+import { createClient } from '@supabase/supabase-js'
 
 import { LitNodeClient } from '@lit-protocol/lit-node-client'
 import { LIT_RPC, LitNetwork, LIT_CHAINS } from '@lit-protocol/constants'
@@ -596,6 +597,24 @@ export async function sendTransaction(event: VerifiedEvent) {
     //   gasLimit: 21_000,
     // };
 
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    await supabaseClient.auth.signInWithPassword({
+      email: SUPABASE_ADMIN_EMAIL,
+      password: SUPABASE_ADMIN_PASSWORD,
+    })
+
+    const { data: keystore } = await supabaseClient
+      .from('keystore')
+      .select('key')
+      .eq('pubkey', event.pubkey)
+      .single()
+
+    if (!keystore) {
+      throw new Error('No keystore found for the given pubkey')
+    }
+
+    const userKeystore = JSON.parse(keystore.key)
+
     console.log('signedTransaction read ....')
     const signedTransaction = await signTransactionWithEncryptedKey({
       pkpSessionSigs: sessionSigs,
@@ -604,7 +623,8 @@ export async function sendTransaction(event: VerifiedEvent) {
       unsignedTransaction: event,
       broadcast: false,
       litNodeClient,
-      
+      seedCiphertext: userKeystore.seedCiphertext,
+      seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
     })
 
     console.log('signedTransaction', signedTransaction)

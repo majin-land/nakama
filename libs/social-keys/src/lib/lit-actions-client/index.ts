@@ -5,6 +5,7 @@ import { signTransactionWithLitAction } from './sign-transaction'
 import { exportPrivateKeyWithLitAction } from './export-private-key'
 import { claimKey } from './claim-key'
 import { signNostrEventWithLitAction } from './sign-nostr-event'
+import { registerUserWalletWithLitAction } from './register-wallet'
 
 export {
   generateKeyWithLitAction,
@@ -15,4 +16,5 @@ export {
   signMessageWithLitAction,
   exportPrivateKeyWithLitAction,
   claimKey,
+  registerUserWalletWithLitAction,
 }

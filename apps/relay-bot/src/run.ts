@@ -7,14 +7,23 @@ import { SimplePool, verifyEvent } from 'nostr-tools'
 import { RelayList, EncryptedDirectMessage } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
 
-import { api, SignNostrEventWithEncryptedKeyParams } from '@nakama/social-keys'
+import {
+  api,
+  SignNostrEventWithEncryptedKeyParams,
+  RegisterUserWalletWithEncryptedKeyParams,
+} from '@nakama/social-keys'
 
-const { signNostrEventWithEncryptedKey } = api
+const { signNostrEventWithEncryptedKey, registerUserWalletWithEncryptedKey } = api
 
+// required env
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
 const WRAPPED_KEY_ID = process.env.RELAY_BOT_WRAPPED_KEY_ID
 const WRAPPED_PUB_KEY = process.env.NOSTR_PUBKEY
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const SUPABASE_ADMIN_EMAIL = process.env.SUPABASE_ADMIN_EMAIL
+const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
 
 const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
 
@@ -35,7 +44,8 @@ export const action = async (
   const nostr_write_relays = Object.entries(nostr_relays)
     .filter(([_url, r]) => r.write)
     .map(([url, _r]) => url)
-  if (!nostr_write_relays.length) nostr_write_relays.push('wss://relay.primal.net')
+  if (!nostr_write_relays.length)
+    nostr_write_relays.push('wss://relay.damus.io', 'wss://relay.primal.net')
 
   try {
     const ethersSigner = new ethers.Wallet(
@@ -127,6 +137,41 @@ export const action = async (
                   litNodeClient,
                 } as unknown as SignNostrEventWithEncryptedKeyParams)
                 console.log('✅ Message: ', JSON.parse(verifiedMessage))
+
+                if (verifiedMessage.toLowerCase().includes('register')) {
+                  // register lit action call here
+                  const register = await registerUserWalletWithEncryptedKey({
+                    pkpSessionSigs,
+                    id: wrappedKeyId,
+                    nostrEvent: event,
+                    litNodeClient,
+                    publicKey: PKP_PUBLIC_KEY,
+                    supabaseUrl: SUPABASE_URL,
+                    supabaseServiceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
+                    supabaseAdminEmail: SUPABASE_ADMIN_EMAIL,
+                    supabaseAdminPassword: SUPABASE_ADMIN_PASSWORD,
+                  } as unknown as RegisterUserWalletWithEncryptedKeyParams)
+
+                  if (register) {
+                    console.log('✅ New User registered: ', JSON.stringify(register))
+                    const content = JSON.parse(register)
+                    try {
+                      await Promise.all(pool.publish(Object.keys(nostr_relays), content))
+                      console.info('✅ Response sent to user:', content)
+                    } catch (error) {
+                      console.error('Error sending response to user:', error)
+                    }
+                  }
+                }
+                if (verifiedMessage.toLowerCase().includes('info')) {
+                  // info lit action call here
+                }
+                if (verifiedMessage.toLowerCase().includes('send')) {
+                  // send lit action call here
+                }
+                if (verifiedMessage.toLowerCase().includes('topup')) {
+                  // topup lit action call here
+                }
               }
             } catch (error) {
               console.error('Error handling event:', error)
