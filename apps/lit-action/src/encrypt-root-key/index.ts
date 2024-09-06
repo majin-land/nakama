@@ -143,18 +143,7 @@ const go = async () => {
     // Decrypt the content of the nostr request
     const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content);
     console.info('Received DM:', payload);
-    if (payload.toLocaleLowerCase().startsWith('info')) {
-      nostrReplyMessage = JSON.stringify('1. register, /n 2. send transaction, 3. top up, 4. voucer')
-      const nostrReply = {
-        kind: EncryptedDirectMessage,
-        tags: [['p', nostrRequest.pubkey]],
-        created_at: Math.floor(Date.now() / 1000),
-        content: await nip04Encrypt(nostrPrivateKey, nostrRequest.pubkey, nostrReplyMessage),
-      };
-  
-      Lit.Actions.setResponse({
-        response: JSON.stringify(finalizeEvent(nostrReply, nostrPrivateKey)),
-      });
+    if (payload.toLocaleLowerCase().startsWith('register')) {
       return 
     } 
     // Store encrypted keystore in Supabase
