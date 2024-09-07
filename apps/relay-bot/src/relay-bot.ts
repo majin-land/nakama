@@ -6,6 +6,7 @@ import {
   verifyEvent,
   type EventTemplate,
   VerifiedEvent,
+  verifiedSymbol,
 } from 'nostr-tools'
 import { hkdf } from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha256'
@@ -54,12 +55,9 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const SUPABASE_ADMIN_EMAIL = process.env.SUPABASE_ADMIN_EMAIL
 const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
 
-const litActionCode = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8')
+const LAEncryptRootKey = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8')
 // const litActionCode = fs.readFileSync('./apps/lit-action/dist/sign-nostr-metadata.js', 'utf8')
-const litActionCodeSendTransaction = fs.readFileSync(
-  './apps/lit-action/dist/sign-transaction.js',
-  'utf8',
-)
+const LASendTransaction = fs.readFileSync('./apps/lit-action/dist/sign-transaction.js', 'utf8')
 
 export interface PartialRelayListEvent extends EventTemplate {
   kind: typeof RelayList
@@ -94,23 +92,7 @@ export async function startService({
 
   console.log(profileMetadata, 'profileMetadataprofileMetadataprofileMetadata')
   if (!profileMetadata) {
-    const metadataEvent: EventTemplate = {
-      kind: Metadata,
-      content: JSON.stringify({
-        name: 'Test-Relay-Bot 2',
-        about: 'Test-Relay-Bot is a bot for receive a payload from Test-Bot',
-        nip05: 'Test-Relay-Bot',
-        lud06: 'Test-Relay-Bot',
-      }),
-      tags: [
-        ['p', nostrPubkey],
-        ['d', 'Test-Relay-Bot'],
-      ],
-      created_at: Math.floor(Date.now() / 1000),
-    }
-    // console.log(nostrPubkey)
-    // await Promise.all(pool.publish(Object.keys(relays), finalizeEvent(metadataEvent, nostrSeckey)))
-    // console.info('Profile Metadata published', finalizeEvent(metadataEvent, nostrSeckey))
+    throw new Error('Please setup nostr bot first!')
   } else {
     console.info('Profile Metadata exists', profileMetadata)
   }
@@ -127,6 +109,7 @@ export async function startService({
     {
       async onevent(event) {
         console.info('Received DM:', event)
+        console.log('[Symbol(verified)]', event['[Symbol(verified)]'])
 
         if (verifyEvent(event)) {
           // const payload = await nip04.decrypt(nostrSeckey, event.pubkey, event.content)
@@ -166,33 +149,29 @@ export async function startService({
           //     }
           //   }
           // if (payload.toLowerCase().includes('register')) {
-          // success
-          // const result = await generateUserWallet(event)
-          // if (result) {
-          //   console.log(result.response)
+          //   const result = await generateUserWallet(event)
+          //   if (result) {
+          //     console.log(result.response)
 
-          //   const content = JSON.parse(result.response)
-          //   if (content) {
-          //     await Promise.all(pool.publish(Object.keys(relays), content))
+          //     const content = JSON.parse(result.response)
+          //     if (content) {
+          //       await Promise.all(pool.publish(Object.keys(relays), content))
+          //     }
+          //     console.info('Response sent to user:', content)
           //   }
-          //   console.info('Response sent to user:', content)
-          // }
           // }
 
           //   // this format will json format
           //   if (payload.toLowerCase().includes('send')) {
-          // const response = await sendTransaction(event)
+          // const result = await generateUserWallet(event)
           const result = await sendTransaction(event)
-          // console.log(result)
-
-          // if (result) {
-          //   console.log(result.response)
-
-          // const content = JSON.parse(result.response)
-          // if (content) {
-          //   await Promise.all(pool.publish(Object.keys(relays), content))
-          // }
-          // console.info('Response sent to user:', content)
+          console.log(result)
+          if (result.response) {
+            const content = JSON.parse(result.response)
+            content[verifiedSymbol] = true
+            await Promise.any(pool.publish(Object.keys(relays), content))
+            console.log('published', content)
+          }
         }
         // }
         // }
@@ -422,7 +401,7 @@ export async function generateWrappedKey(nostrNpub: string) {
 }
 
 export async function generateUserWallet(event: EventTemplate) {
-  if (!GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
+  if (!PKP_PUBLIC_KEY) return
   let litNodeClient: LitNodeClient
 
   try {
@@ -468,29 +447,31 @@ export async function generateUserWallet(event: EventTemplate) {
 
     const allowPkpAddressToDecrypt = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
 
+    const jsParams = {
+      publicKey: PKP_PUBLIC_KEY,
+      ciphertext: storedKeyMetadata.ciphertext,
+      dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
+      pkpAddress,
+      accessControlConditions: [allowPkpAddressToDecrypt],
+      nostrRequest: event,
+      supabase: {
+        url: SUPABASE_URL,
+        serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+        email: SUPABASE_ADMIN_EMAIL,
+        password: SUPABASE_ADMIN_PASSWORD,
+      },
+    }
+
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
       // ipfsId: GENERATE_WALLET_IPFS_ID,
-      code: litActionCode,
-      jsParams: {
-        publicKey: PKP_PUBLIC_KEY,
-        ciphertext: storedKeyMetadata.ciphertext,
-        dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
-        pkpAddress,
-        accessControlConditions: [allowPkpAddressToDecrypt],
-        nostrRequest: event,
-        supabase: {
-          url: SUPABASE_URL,
-          serviceRole: SUPABASE_SERVICE_ROLE_KEY,
-          email: SUPABASE_ADMIN_EMAIL,
-          password: SUPABASE_ADMIN_PASSWORD,
-        },
-      },
+      code: LAEncryptRootKey,
+      jsParams,
     })
 
-    console.log('generateWallet.response', JSON.stringify(generateWallet, null, 2))
     return generateWallet
   } catch (error) {
+    console.log('ERROR generateWallet')
     console.error(error)
   } finally {
     litNodeClient?.disconnect()
@@ -615,40 +596,41 @@ export async function sendTransaction(event: VerifiedEvent) {
 
     const userKeystore = JSON.parse(keystore.key)
 
-    console.log('signedTransaction read ....')
-    const signedTransaction = await signTransactionWithEncryptedKey({
-      pkpSessionSigs: sessionSigs,
-      network: 'nostr',
-      id: WRAPPED_KEY_ID,
-      unsignedTransaction: event,
-      broadcast: false,
-      litNodeClient,
-      seedCiphertext: userKeystore.seedCiphertext,
-      seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+    // console.log('signedTransaction read ....')
+    // const signedTransaction = await signTransactionWithEncryptedKey({
+    //   pkpSessionSigs: sessionSigs,
+    //   network: 'nostr',
+    //   id: WRAPPED_KEY_ID,
+    //   unsignedTransaction: event,
+    //   broadcast: false,
+    //   litNodeClient,
+    //   seedCiphertext: userKeystore.seedCiphertext,
+    //   seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+    // })
+
+    // console.log('signedTransaction', signedTransaction)
+
+    const sendTransactionWithLitAction = await litNodeClient.executeJs({
+      sessionSigs,
+      // ipfsId: GENERATE_WALLET_IPFS_ID,
+      code: LASendTransaction,
+      jsParams: {
+        publicKey: PKP_PUBLIC_KEY,
+        ciphertext: storedKeyMetadata.ciphertext,
+        dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
+        pkpAddress,
+        accessControlConditions: [allowPkpAddressToDecrypt],
+        nostrRequest: event,
+        supabase: {
+          url: SUPABASE_URL,
+          serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+          email: SUPABASE_ADMIN_EMAIL,
+          password: SUPABASE_ADMIN_PASSWORD,
+        },
+      },
     })
 
-    console.log('signedTransaction', signedTransaction)
-
-    // const sendTransactionWithLitAction = await litNodeClient.executeJs({
-    //   sessionSigs,
-    //   // ipfsId: GENERATE_WALLET_IPFS_ID,
-    //   code: litActionCodeSendTransaction,
-    //   jsParams: {
-    //     publicKey: PKP_PUBLIC_KEY,
-    //     ciphertext: storedKeyMetadata.ciphertext,
-    //     dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
-    //     pkpAddress,
-    //     accessControlConditions: [allowPkpAddressToDecrypt],
-    //     nostrRequest: event,
-    //     unsignedTransaction,
-    //     supabase: {
-    //       url: SUPABASE_URL,
-    //       serviceRole: SUPABASE_SERVICE_ROLE_KEY,
-    //       email: SUPABASE_ADMIN_EMAIL,
-    //       password: SUPABASE_ADMIN_PASSWORD,
-    //     },
-    //   },
-    // })
+    console.log('sendTransactionWithLitAction', sendTransactionWithLitAction)
 
     // console.log('generatesend.response', JSON.stringify(sendTransactionWithLitAction, null, 2))
     return

@@ -1,6 +1,5 @@
 import { LIT_NETWORKS_KEYS } from '@lit-protocol/types'
 import { LIT_CHAINS } from '@lit-protocol/constants'
-import * as ethers from 'ethers'
 import { EthereumLitTransaction } from '../types'
 
 export function getChainForNetwork(network: LIT_NETWORKS_KEYS): {
@@ -70,7 +69,5 @@ export function getBaseTransactionForNetwork({
     value: '0.0001', // in ethers (Lit tokens)
     ...getChainForNetwork(network),
     ...getGasParamsForNetwork(network),
-    // dataHex: ethers.utils.hexlify(ethers.utils.toUtf8Bytes('Test transaction from Alice to bob')),
-    // dataHex: ethers.hexlify(ethers.toUtf8Bytes('Test transaction from Alice to bob')),
   }
 }

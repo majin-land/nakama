@@ -1,6 +1,6 @@
 import { exportPrivateKey } from './export-private-key'
 import { generatePrivateKey } from './generate-private-key'
-import { generateNostrPrivateKey } from './generate-nostr-key'
+import { generateNostrPrivateKey } from './generate-nostr-private-key'
 import { getEncryptedKey } from './get-encrypted-key'
 import { importPrivateKey } from './import-private-key'
 import { listEncryptedKeyMetadata } from './list-encrypted-key-metadata'
