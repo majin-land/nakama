@@ -6,6 +6,7 @@
  * @jsParam dataToEncryptHash - The hash for the encrypted Wrapped Key
  * @jsParam messageToSign - The unsigned message to be signed by the Wrapped Key
  * @jsParam accessControlConditions - The access control conditions that allow only the pkpAddress to decrypt the Wrapped Key
+ * @jsParam nostrRequest - request from nostr
  *
  * @returns { Promise<string> } - Returns a message signed by the Ethers Wrapped key, or returns an error if any.
  */
@@ -13,14 +14,11 @@
 import { hkdf } from 'https://esm.sh/@noble/hashes@1.4.0/hkdf.js'
 import { pbkdf2Async } from 'https://esm.sh/@noble/hashes@1.4.0/pbkdf2.js'
 import { sha512 } from 'https://esm.sh/@noble/hashes@1.4.0/sha512.js'
-import { finalizeEvent, verifyEvent } from 'https://esm.sh/nostr-tools@2.7.2/pure'
-import {
-  decrypt as nip04Decrypt,
-  encrypt as nip04Encrypt,
-} from 'https://esm.sh/nostr-tools@2.7.2/nip04.js'
+import { verifyEvent } from 'https://esm.sh/nostr-tools@2.7.2/pure'
+import { decrypt as nip04Decrypt } from 'https://esm.sh/nostr-tools@2.7.2/nip04.js'
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-import { EncryptedDirectMessage } from 'https://esm.sh/nostr-tools/kinds'
 import { sha256 } from 'https://esm.sh/@noble/hashes@1.4.0/sha256.js'
+const { nostrResponse } = require('../utils.js')
 
 const LIT_PREFIX = 'lit_'
 
@@ -31,6 +29,7 @@ const go = async () => {
   const SUPABASE_ADMIN_PASSWORD = supabase.password // @JSParams supabase.password
 
   let supabaseClient
+  let nostrPrivateKey
 
   try {
     // Validate nostr request
@@ -73,8 +72,6 @@ const go = async () => {
 
     // Derive BIP32 path for Ethereum network
     const networkPath = "m/44'/60'/0'/0"
-    const networkHDNode = rootHDNode.derivePath(networkPath)
-    const { extendedKey: bip32ExtendedPrivateKey } = networkHDNode
 
     // Generate accounts from the derived HDNode
     const accounts = [0].map((num) => {
@@ -96,10 +93,7 @@ const go = async () => {
         authSig: null,
       })
     } catch (err) {
-      Lit.Actions.setResponse({
-        response: 'Error: When decrypting to a single node- ' + err.message,
-      })
-      return
+      throw new Error('Error: When decrypting to a single node- ' + err.message)
     }
 
     // Encrypt and store user keystore
@@ -143,19 +137,17 @@ const go = async () => {
     })
 
     // Extract the nostr private key
-    let nostrPrivateKey
     try {
       nostrPrivateKey = decryptedPrivateKey.slice(LIT_PREFIX.length).slice(2)
     } catch (err) {
-      Lit.Actions.setResponse({ response: err.message })
-      return
+      throw err
     }
 
     // Decrypt the content of the nostr request
     const payload = await nip04Decrypt(nostrPrivateKey, nostrRequest.pubkey, nostrRequest.content)
     console.info('Received DM:', payload)
     if (!payload.toLocaleLowerCase().startsWith('register')) {
-      return
+      throw new Error('invalid payload')
     }
     // Store encrypted keystore in Supabase
     const response = await Lit.Actions.runOnce(
@@ -173,50 +165,41 @@ const go = async () => {
           .eq('pubkey', nostrRequest.pubkey)
           .single()
 
+        let message = ''
         if (existedData) {
-          const message = 'You already have a wallet'
-          const nostrReply = {
-            kind: EncryptedDirectMessage,
-            tags: [['p', nostrRequest.pubkey]],
-            created_at: Math.floor(Date.now() / 1000),
-            content: await nip04Encrypt(nostrPrivateKey, nostrRequest.pubkey, message),
-          }
-          const finalizedMsg = finalizeEvent(nostrReply, nostrPrivateKey)
+          message = 'You already have a wallet'
+        } else {
+          const { error } = await supabaseClient.from('keystore').insert({
+            key: userKeystore,
+            signature: sig,
+            pubkey: nostrRequest.pubkey,
+          })
+          if (error) throw error
 
-          return JSON.stringify(finalizedMsg)
+          // Create and send a Nostr EncryptedDirectMessage
+          message = accounts.reduce((acc, [path, account]) => {
+            return (
+              acc +
+              (path.startsWith("m/44'/60'/")
+                ? `Ethereum account [${path}]: ${account.address}\n`
+                : `BIP32 address [${path}]: ${account.address}\n`)
+            )
+          }, 'You have been registered on the Lit Protocol!\n\n')
         }
 
-        const { error } = await supabaseClient.from('keystore').insert({
-          key: userKeystore,
-          signature: sig,
-          pubkey: nostrRequest.pubkey,
-        })
-
-        if (error) throw error
-
-        // Create and send a Nostr EncryptedDirectMessage
-        const nostrReplyMessage = accounts.reduce((acc, [path, account]) => {
-          return (
-            acc +
-            (path.startsWith("m/44'/60'/")
-              ? `Ethereum account [${path}]: ${account.address}\n`
-              : `BIP32 address [${path}]: ${account.address}\n`)
-          )
-        }, 'You have been registered on the Lit Protocol!\n\n')
-
-        const nostrReply = {
-          kind: EncryptedDirectMessage,
-          tags: [['p', nostrRequest.pubkey]],
-          created_at: Math.floor(Date.now() / 1000),
-          content: await nip04Encrypt(nostrPrivateKey, nostrRequest.pubkey, nostrReplyMessage),
-        }
-        return JSON.stringify(finalizeEvent(nostrReply, nostrPrivateKey))
+        return await nostrResponse(nostrRequest.pubkey, nostrPrivateKey, message)
       },
     )
 
     Lit.Actions.setResponse({ response })
   } catch (error) {
-    Lit.Actions.setResponse({ response: error.message })
+    if (nostrPrivateKey) {
+      Lit.Actions.setResponse({
+        response: await nostrResponse(nostrRequest.pubkey, nostrPrivateKey, error.message),
+      })
+    } else {
+      Lit.Actions.setResponse({ response: error.message })
+    }
   } finally {
     if (supabaseClient && supabaseClient.auth) {
       supabaseClient.auth.signOut()
