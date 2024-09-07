@@ -11,9 +11,14 @@ import {
   api,
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
+  InfoFeatureWithEncryptedKeyParams,
 } from '@nakama/social-keys'
 
-const { signNostrEventWithEncryptedKey, registerUserWalletWithEncryptedKey } = api
+const {
+  signNostrEventWithEncryptedKey,
+  registerUserWalletWithEncryptedKey,
+  informationFeatureWithEncryptedKey,
+} = api
 
 // required env
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
@@ -165,6 +170,23 @@ export const action = async (
                 }
                 if (verifiedMessage.toLowerCase().includes('info')) {
                   // info lit action call here
+                  const info = await informationFeatureWithEncryptedKey({
+                    pkpSessionSigs,
+                    id: wrappedKeyId,
+                    nostrEvent: event,
+                    litNodeClient,
+                  } as unknown as SignNostrEventWithEncryptedKeyParams)
+
+                  if (info) {
+                    console.log('✅ Information: ', JSON.stringify(info))
+                    const content = JSON.parse(info)
+                    try {
+                      await Promise.all(pool.publish(Object.keys(nostr_relays), content))
+                      console.info('✅ Response sent to show information:', content)
+                    } catch (error) {
+                      console.error('Error sending response to user:', error)
+                    }
+                  }
                 }
                 if (verifiedMessage.toLowerCase().includes('send')) {
                   // send lit action call here

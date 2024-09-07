@@ -1,13 +1,14 @@
 {
   "tasks": {
     "dev": "deno run --watch main.ts",
-    "build": "deno task build-nostr-key & deno task build-nostr-metadata & deno task build-nostr-relays & deno task build-sign-transaction & deno task build-generate-wallet & deno task build-message-handler",
+    "build": "deno task build-nostr-key & deno task build-nostr-metadata & deno task build-nostr-relays & deno task build-sign-transaction & deno task build-generate-wallet & deno task build-message-handler & deno task build-info-feature",
     "build-generate-wallet": "deno run --allow-read --allow-write --allow-env --allow-run src/encrypt-root-key/esbuild.ts",
     "build-nostr-key": "deno run --allow-read --allow-write --allow-env --allow-run src/generate-nostr-private-key/esbuild.ts",
     "build-nostr-metadata": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-nostr-metadata/esbuild.ts",
     "build-nostr-relays": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-nostr-relay-list/esbuild.ts",
     "build-message-handler": "deno run --allow-read --allow-write --allow-env --allow-run src/message-handler/esbuild.ts",
-    "build-sign-transaction": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-transaction/esbuild.ts"
+    "build-sign-transaction": "deno run --allow-read --allow-write --allow-env --allow-run src/sign-transaction/esbuild.ts",
+    "build-info-feature": "deno run --allow-read --allow-write --allow-env --allow-run src/information-feature/esbuild.ts"
   },
   "imports": {
     "@composedb/server": "npm:@composedb/server@^0.8.0",

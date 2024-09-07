@@ -79,8 +79,6 @@ export const action = async (
     const unsignedMetadata = {
       name: 'TEST_BOT_RELAY',
       about: 'TEST_BOT_RELAY is a bot for receive a payload from Test-Bot',
-      nip05: 'TEST_BOT_RELAY',
-      lud06: 'TEST_BOT_RELAY',
     }
 
     console.log('🔄 Signing metadata with Wrapped Key...')

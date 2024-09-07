@@ -300,3 +300,4 @@ export type SignMetadataWithEncryptedKeyParams = SignMetadataParamsSupported
 export type SignRelayListWithEncryptedKeyParams = SignRelayListParamsSupported
 export type SignNostrEventWithEncryptedKeyParams = SignNostrEventParamsSupported
 export type RegisterUserWalletWithEncryptedKeyParams = RegisterUserWalletParamsSupported
+export type InfoFeatureWithEncryptedKeyParams = GetEncryptedKeyDataParams
