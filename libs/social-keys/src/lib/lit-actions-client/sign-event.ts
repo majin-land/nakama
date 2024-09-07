@@ -1,41 +1,35 @@
-import {
-  AccessControlConditions,
-  ILitNodeClient,
-  SessionSigsMap,
-} from '@lit-protocol/types';
+import { AccessControlConditions, ILitNodeClient, SessionSigsMap } from '@lit-protocol/types'
 
-import { postLitActionValidation } from './utils';
+import { postLitActionValidation } from './utils'
 import {
   EthereumLitTransaction,
   NostrMetadata,
   NostrRelays,
   SerializedTransaction,
   StoredKeyData,
-} from '../types';
-import { GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK } from '@lit-protocol/constants';
+} from '../types'
+import { GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK } from '@lit-protocol/constants'
 
 interface SignMetadataWithLitActionParams {
-  litNodeClient: ILitNodeClient;
-  pkpSessionSigs: SessionSigsMap;
-  litActionIpfsCid: string;
-  unsignedMetadata: NostrMetadata;
-  storedKeyMetadata: StoredKeyData;
-  accessControlConditions: AccessControlConditions;
-  broadcast: boolean;
+  litNodeClient: ILitNodeClient
+  pkpSessionSigs: SessionSigsMap
+  litActionIpfsCid: string
+  unsignedMetadata: NostrMetadata
+  storedKeyMetadata: StoredKeyData
+  accessControlConditions: AccessControlConditions
 }
 interface SignRelayListWithLitActionParams {
-  litNodeClient: ILitNodeClient;
-  pkpSessionSigs: SessionSigsMap;
-  litActionIpfsCid: string;
-  nostr_write_relays: NostrRelays;
-  nostr_read_relays: NostrRelays;
-  storedKeyMetadata: StoredKeyData;
-  accessControlConditions: AccessControlConditions;
+  litNodeClient: ILitNodeClient
+  pkpSessionSigs: SessionSigsMap
+  litActionIpfsCid: string
+  nostr_write_relays: NostrRelays
+  nostr_read_relays: NostrRelays
+  storedKeyMetadata: StoredKeyData
+  accessControlConditions: AccessControlConditions
 }
 
 export async function signMetadataWithLitAction({
   accessControlConditions,
-  broadcast,
   litActionIpfsCid,
   litNodeClient,
   pkpSessionSigs,
@@ -50,16 +44,14 @@ export async function signMetadataWithLitAction({
       ciphertext,
       dataToEncryptHash,
       unsignedMetadata,
-      broadcast,
       accessControlConditions,
     },
     ipfsOptions: {
-      overwriteCode:
-        GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK[litNodeClient.config.litNetwork],
+      overwriteCode: GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK[litNodeClient.config.litNetwork],
     },
-  });
+  })
 
-  return postLitActionValidation(result);
+  return postLitActionValidation(result)
 }
 
 export async function signRelayListWithLitAction({
@@ -83,10 +75,9 @@ export async function signRelayListWithLitAction({
       accessControlConditions,
     },
     ipfsOptions: {
-      overwriteCode:
-        GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK[litNodeClient.config.litNetwork],
+      overwriteCode: GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK[litNodeClient.config.litNetwork],
     },
-  });
+  })
 
-  return postLitActionValidation(result);
+  return postLitActionValidation(result)
 }

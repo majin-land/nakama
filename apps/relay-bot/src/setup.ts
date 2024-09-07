@@ -6,13 +6,10 @@ import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
 import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
 import { npubEncode } from 'nostr-tools/nip19'
 
-import {
-  api,
-  SignMetadataWithEncryptedKeyParams,
-  SignRelayListWithEncryptedKeyParams,
-} from '@nakama/social-keys'
+import { api, SignMetadataWithEncryptedKeyParams } from '@nakama/social-keys'
+import { getSignedRelayList } from './utils'
 
-const { generateNostrPrivateKey, signMetadataWithEncryptedKey, signRelayListWithEncryptedKey } = api
+const { generateNostrPrivateKey, signMetadataWithEncryptedKey } = api
 
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
 const PKP_PUBLIC_KEY = process.env.PKP_PUBLIC_KEY
@@ -22,14 +19,12 @@ const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
 export const action = async (
   pkpPublicKey: string,
   memo: string,
-  broadcastTransaction: boolean,
   opts: {
     pool?: SimplePool
-    nostr_relays?: { [url: string]: { read: boolean; write: boolean } }
   } = {},
 ) => {
   let litNodeClient: LitNodeClient
-  const { pool = new SimplePool(), nostr_relays = {} } = opts
+  const { pool = new SimplePool() } = opts
 
   try {
     const ethersSigner = new ethers.Wallet(
@@ -75,51 +70,13 @@ export const action = async (
     console.log(
       `✅ Generated wrapped key with id: ${wrappedKey.id} and public key: ${wrappedKey.generatedPublicKey}`,
     )
+    console.log('wrappedKey', wrappedKey)
 
-    const unsignedMetadata = {
-      name: 'TEST_BOT_RELAY',
-      about: 'TEST_BOT_RELAY is a bot for receive a payload from Test-Bot',
-      nip05: 'TEST_BOT_RELAY',
-      lud06: 'TEST_BOT_RELAY',
-    }
-
-    console.log('🔄 Signing metadata with Wrapped Key...')
-    const verifiedMetadata = await signMetadataWithEncryptedKey({
+    const { signedRelayList, nostr_write_relays } = await getSignedRelayList(
       pkpSessionSigs,
-      network: 'nostr',
-      id: wrappedKey.id,
-      unsignedMetadata,
-      broadcast: broadcastTransaction,
+      wrappedKey,
       litNodeClient,
-    } as unknown as SignMetadataWithEncryptedKeyParams)
-    console.log('✅ Signed metadata')
-
-    // See: https://github.com/nostr-protocol/nips/blob/master/65.md#when-to-use-read-and-write
-    const nostr_write_relays = Object.entries(nostr_relays)
-      .filter(([_url, r]) => r.write)
-      .map(([url, _r]) => url)
-    if (!nostr_write_relays.length)
-      nostr_write_relays.push('wss://relay.damus.io', 'wss://relay.primal.net')
-
-    // Write relay list
-    const nostr_read_relays = Object.entries(nostr_relays)
-      .filter(([_url, r]) => r.read)
-      .map(([url, _r]) => url)
-    if (!nostr_read_relays.length)
-      nostr_read_relays.push('wss://relay.damus.io', 'wss://relay.primal.net')
-
-    console.log('🔄 Signing relay list with Wrapped Key...')
-    const verifiedRelayList = await signRelayListWithEncryptedKey({
-      pkpSessionSigs,
-      network: 'nostr',
-      id: wrappedKey.id,
-      nostr_write_relays,
-      nostr_read_relays,
-      litNodeClient,
-    } as unknown as SignRelayListWithEncryptedKeyParams)
-    console.log('✅ Signed relay list')
-
-    const signedRelayList = JSON.parse(verifiedRelayList)
+    )
 
     console.log('🔄 Publishing relay list...')
     try {
@@ -129,17 +86,29 @@ export const action = async (
       console.error('Error publishing relay list:', error)
     }
 
-    nostr_read_relays.forEach((relay) => {
-      nostr_relays[relay] = nostr_write_relays.includes(relay)
-        ? { read: true, write: true }
-        : { read: true, write: false }
-    })
+    const unsignedMetadata = {
+      bot: true,
+      display_name: 'Nakama Relay Bot',
+      name: 'Nakama Relay Bot',
+      about: 'Nakama Relay Bot is a bot for receive a payload from Test-Bot',
+    }
+
+    console.log('🔄 Signing metadata with Wrapped Key...')
+    const verifiedMetadata = await signMetadataWithEncryptedKey({
+      pkpSessionSigs,
+      network: 'nostr',
+      id: wrappedKey.id,
+      unsignedMetadata,
+      litNodeClient,
+    } as unknown as SignMetadataWithEncryptedKeyParams)
+    console.log('✅ Signed metadata')
 
     const signedMetadata = JSON.parse(verifiedMetadata)
+    console.log('signedMetadata', signedMetadata)
 
     console.log('🔄 Publishing metadata...')
     try {
-      await Promise.all(pool.publish(Object.keys(nostr_relays), signedMetadata))
+      await Promise.all(pool.publish(nostr_write_relays, signedMetadata))
       console.log('✅ Published metadata')
     } catch (error) {
       console.error('Error publishing metadata:', error)
@@ -156,5 +125,5 @@ export const action = async (
 }
 
 export default async function setup() {
-  await action(PKP_KEY, 'nostr-bot', true).then(console.log)
+  await action(PKP_KEY, 'nostr-bot').then(console.log)
 }

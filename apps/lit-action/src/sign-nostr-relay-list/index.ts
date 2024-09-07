@@ -1,5 +1,6 @@
-import { RelayList } from "https://esm.sh/nostr-tools/kinds";
-import { getPublicKey, finalizeEvent } from "https://esm.sh/nostr-tools@2.7.2/pure";
+import { RelayList } from 'https://esm.sh/nostr-tools/kinds'
+import { finalizeEvent } from 'https://esm.sh/nostr-tools@2.7.2/pure'
+const { removeSaltFromDecryptedKey } = require('../utils.js')
 
 /**
  *
@@ -14,20 +15,8 @@ import { getPublicKey, finalizeEvent } from "https://esm.sh/nostr-tools@2.7.2/pu
  * @returns { Promise<string> } - Returns a message signed by the Ethers Wrapped key. Or returns errors if any.
  */
 
-const LIT_PREFIX = 'lit_' as const;
-
-function removeSaltFromDecryptedKey(decryptedPrivateKey) {
-  if (!decryptedPrivateKey.startsWith(LIT_PREFIX)) {
-    throw new Error(
-      `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`
-    );
-  }
-
-  return decryptedPrivateKey.slice(LIT_PREFIX.length);
-}
-
-(async () => {
-  let decryptedPrivateKey;
+;(async () => {
+  let decryptedPrivateKey
   try {
     decryptedPrivateKey = await Lit.Actions.decryptToSingleNode({
       accessControlConditions,
@@ -35,28 +24,25 @@ function removeSaltFromDecryptedKey(decryptedPrivateKey) {
       dataToEncryptHash,
       chain: 'ethereum',
       authSig: null,
-    });
+    })
   } catch (err) {
-    const errorMessage =
-      'Error: When decrypting to a single node- ' + err.message;
-    Lit.Actions.setResponse({ response: errorMessage });
-    return;
+    const errorMessage = 'Error: When decrypting to a single node- ' + err.message
+    Lit.Actions.setResponse({ response: errorMessage })
+    return
   }
 
   if (!decryptedPrivateKey) {
     // Exit the nodes which don't have the decryptedData
-    return;
+    return
   }
 
-  let privateKey;
+  let privateKey
   try {
-    privateKey = removeSaltFromDecryptedKey(decryptedPrivateKey);
+    privateKey = removeSaltFromDecryptedKey(decryptedPrivateKey)
   } catch (err) {
-    Lit.Actions.setResponse({ response: err.message });
-    return;
+    Lit.Actions.setResponse({ response: err.message })
+    return
   }
-
-  const nostrPubkey = getPublicKey(ethers.utils.arrayify(privateKey))
 
   const event = {
     kind: RelayList,
@@ -75,10 +61,11 @@ function removeSaltFromDecryptedKey(decryptedPrivateKey) {
   }
 
   try {
-    const response = finalizeEvent(event, ethers.utils.arrayify(privateKey));
-    Lit.Actions.setResponse({ response: JSON.stringify(response) });
+    const privateKeyUint8Array = ethers.utils.arrayify(privateKey)
+    const response = finalizeEvent(event, privateKeyUint8Array)
+    Lit.Actions.setResponse({ response: JSON.stringify(response) })
   } catch (err) {
-    const errorMessage = 'Error: When signing relays- ' + err.message;
-    Lit.Actions.setResponse({ response: errorMessage });
+    const errorMessage = 'Error: When signing relays- ' + err.message
+    Lit.Actions.setResponse({ response: errorMessage })
   }
-})();
+})()

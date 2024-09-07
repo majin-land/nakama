@@ -4,7 +4,11 @@ import * as ethers from 'ethers'
 import { EthereumLitTransaction } from '@lit-protocol/wrapped-keys'
 
 import { SimplePool, finalizeEvent, verifyEvent } from 'nostr-tools'
-import { RelayList } from 'nostr-tools/kinds'
+import { RelayList, EncryptedDirectMessage } from 'nostr-tools/kinds'
+import { encrypt as nip04Encrypt } from 'nostr-tools/nip04'
+import { SignRelayListWithEncryptedKeyParams, api } from '@nakama/social-keys'
+
+const { signRelayListWithEncryptedKey } = api
 
 export function getChainForNetwork(network: LIT_NETWORKS_KEYS): {
   chain: string
@@ -148,4 +152,38 @@ export async function loadNostrRelayList(
   }
 
   return nostr_relays
+}
+
+export const getSignedRelayList = async (pkpSessionSigs, wrappedKey, litNodeClient) => {
+  // See: https://github.com/nostr-protocol/nips/blob/master/65.md#when-to-use-read-and-write
+  const nostr_write_relays = ['wss://relay.damus.io', 'wss://relay.primal.net']
+  const nostr_read_relays = ['wss://relay.damus.io', 'wss://relay.primal.net']
+
+  console.log('🔄 Signing relay list with Wrapped Key...')
+  const verifiedRelayList = await signRelayListWithEncryptedKey({
+    pkpSessionSigs,
+    network: 'nostr',
+    id: wrappedKey.id,
+    nostr_write_relays,
+    nostr_read_relays,
+    litNodeClient,
+  } as unknown as SignRelayListWithEncryptedKeyParams)
+  console.log('✅ Signed relay list')
+
+  return {
+    signedRelayList: JSON.parse(verifiedRelayList),
+    nostr_write_relays,
+    nostr_read_relays,
+  }
+}
+
+export async function nostrResponse(pubkey, privatekey, message) {
+  const nostrReply = {
+    kind: EncryptedDirectMessage,
+    tags: [['p', pubkey]],
+    created_at: Math.floor(Date.now() / 1000),
+    content: await nip04Encrypt(privatekey, pubkey, message),
+  }
+
+  return JSON.stringify(finalizeEvent(nostrReply, privatekey))
 }

@@ -230,7 +230,9 @@ export interface NostrMetadata {
   website: `https://${string}`
 }
 
-export interface NostrRelays { [url: string]: { read: boolean; write: boolean } }
+export interface NostrRelays {
+  [url: string]: { read: boolean; write: boolean }
+}
 
 export interface NostrEvent {
   kind: number
@@ -263,6 +265,15 @@ export interface RegisterUserWalletParamsSupported extends SignTransactionParams
   supabaseAdminPassword: string
 }
 
+export interface SendTransactionParamsSupported extends SignTransactionParams {
+  unsignedTransaction: NostrEvent
+  publicKey: string
+  supabaseUrl: string
+  supabaseServiceRoleKey: string
+  supabaseAdminEmail: string
+  supabaseAdminPassword: string
+}
+
 export interface SignTransactionParamsSupportedEvm extends SignTransactionParams {
   unsignedTransaction: EthereumLitTransaction
   network: Extract<Network, 'evm'>
@@ -271,6 +282,8 @@ export interface SignTransactionParamsSupportedEvm extends SignTransactionParams
 export interface SignTransactionParamsSupportedEvmNostr extends SignTransactionParams {
   unsignedTransaction: VerifiedEvent
   network: Extract<Network, 'nostr'>
+  seedCiphertext?: string
+  seedDataToEncryptHash?: string
 }
 
 export interface SignTransactionParamsSupportedSolana extends SignTransactionParams {
@@ -300,3 +313,4 @@ export type SignMetadataWithEncryptedKeyParams = SignMetadataParamsSupported
 export type SignRelayListWithEncryptedKeyParams = SignRelayListParamsSupported
 export type SignNostrEventWithEncryptedKeyParams = SignNostrEventParamsSupported
 export type RegisterUserWalletWithEncryptedKeyParams = RegisterUserWalletParamsSupported
+export type SendTransactionWithEncryptedKeyParams = SendTransactionParamsSupported
