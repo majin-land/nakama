@@ -620,7 +620,7 @@ export async function sendTransaction(event: VerifiedEvent) {
         dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
         pkpAddress,
         accessControlConditions: [allowPkpAddressToDecrypt],
-        nostrRequest: event,
+        unsignedTransaction: event,
         supabase: {
           url: SUPABASE_URL,
           serviceRole: SUPABASE_SERVICE_ROLE_KEY,

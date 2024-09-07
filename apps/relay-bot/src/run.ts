@@ -11,9 +11,14 @@ import {
   api,
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
+  SendTransactionWithEncryptedKeyParams,
 } from '@nakama/social-keys'
 
-const { signNostrEventWithEncryptedKey, registerUserWalletWithEncryptedKey } = api
+const {
+  signNostrEventWithEncryptedKey,
+  registerUserWalletWithEncryptedKey,
+  sendTransactionWithEncryptedKey,
+} = api
 
 // required env
 const ETHEREUM_PRIVATE_KEY = process.env.PRIVATE_KEY
@@ -168,6 +173,28 @@ export const action = async (
                 }
                 if (verifiedMessage.toLowerCase().includes('send')) {
                   // send lit action call here
+                  const sendTransaction = await sendTransactionWithEncryptedKey({
+                    pkpSessionSigs,
+                    id: wrappedKeyId,
+                    unsignedTransaction: event,
+                    litNodeClient,
+                    publicKey: PKP_PUBLIC_KEY,
+                    supabaseUrl: SUPABASE_URL,
+                    supabaseServiceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
+                    supabaseAdminEmail: SUPABASE_ADMIN_EMAIL,
+                    supabaseAdminPassword: SUPABASE_ADMIN_PASSWORD,
+                  } as unknown as SendTransactionWithEncryptedKeyParams)
+
+                  if (sendTransaction) {
+                    console.log('✅ Transaction Sended: ', JSON.stringify(sendTransaction))
+                    // const content = JSON.parse(register)
+                    // try {
+                    //   await Promise.all(pool.publish(Object.keys(nostr_relays), content))
+                    //   console.info('✅ Response sent to user:', content)
+                    // } catch (error) {
+                    //   console.error('Error sending response to user:', error)
+                    // }
+                  }
                 }
                 if (verifiedMessage.toLowerCase().includes('topup')) {
                   // topup lit action call here

@@ -12,6 +12,7 @@ import {
   signRelayListWithEncryptedKey,
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
+  sendTransactionWithEncryptedKey,
 } from './lib/api'
 import {
   CHAIN_ETHEREUM,
@@ -62,6 +63,7 @@ import type {
   SignRelayListWithEncryptedKeyParams,
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
+  SendTransactionWithEncryptedKeyParams,
 } from './lib/types'
 import { signTransactionWithLitAction } from './lib/lit-actions-client'
 
@@ -90,6 +92,7 @@ export const api = {
   signTransactionWithLitAction,
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
+  sendTransactionWithEncryptedKey,
 }
 
 export {
@@ -125,4 +128,5 @@ export {
   getFirstSessionSig,
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
+  SendTransactionWithEncryptedKeyParams,
 }

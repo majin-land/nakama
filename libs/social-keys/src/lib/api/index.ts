@@ -11,6 +11,7 @@ import { signMetadataWithEncryptedKey } from './sign-metadata-with-encrypted-key
 import { signRelayListWithEncryptedKey } from './sign-relay-list-with-encrypted-key'
 import { signNostrEventWithEncryptedKey } from './sign-nostr-event-with-encrypted-key'
 import { registerUserWalletWithEncryptedKey } from './register-wallet-with-encrypted-key'
+import { sendTransactionWithEncryptedKey } from './send-transaction-with-encrypted-key'
 
 export {
   listEncryptedKeyMetadata,
@@ -26,4 +27,5 @@ export {
   signRelayListWithEncryptedKey,
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
+  sendTransactionWithEncryptedKey,
 }

@@ -265,6 +265,15 @@ export interface RegisterUserWalletParamsSupported extends SignTransactionParams
   supabaseAdminPassword: string
 }
 
+export interface SendTransactionParamsSupported extends SignTransactionParams {
+  unsignedTransaction: NostrEvent
+  publicKey: string
+  supabaseUrl: string
+  supabaseServiceRoleKey: string
+  supabaseAdminEmail: string
+  supabaseAdminPassword: string
+}
+
 export interface SignTransactionParamsSupportedEvm extends SignTransactionParams {
   unsignedTransaction: EthereumLitTransaction
   network: Extract<Network, 'evm'>
@@ -304,3 +313,4 @@ export type SignMetadataWithEncryptedKeyParams = SignMetadataParamsSupported
 export type SignRelayListWithEncryptedKeyParams = SignRelayListParamsSupported
 export type SignNostrEventWithEncryptedKeyParams = SignNostrEventParamsSupported
 export type RegisterUserWalletWithEncryptedKeyParams = RegisterUserWalletParamsSupported
+export type SendTransactionWithEncryptedKeyParams = SendTransactionParamsSupported
