@@ -58,6 +58,7 @@ const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
 const LAEncryptRootKey = fs.readFileSync('./apps/lit-action/dist/encrypt-root-key.js', 'utf8')
 // const litActionCode = fs.readFileSync('./apps/lit-action/dist/sign-nostr-metadata.js', 'utf8')
 const LASendTransaction = fs.readFileSync('./apps/lit-action/dist/sign-transaction.js', 'utf8')
+const LAEthTransfer = fs.readFileSync('./apps/lit-action/dist/eth-transfer.js', 'utf8')
 
 export interface PartialRelayListEvent extends EventTemplate {
   kind: typeof RelayList
@@ -164,13 +165,16 @@ export async function startService({
           //   // this format will json format
           //   if (payload.toLowerCase().includes('send')) {
           // const result = await generateUserWallet(event)
+          // const result = await ethTransfer(event)
           const result = await sendTransaction(event)
           console.log(result)
-          if (result.response) {
+          if (result && result.response) {
             const content = JSON.parse(result.response)
-            content[verifiedSymbol] = true
-            await Promise.any(pool.publish(Object.keys(relays), content))
-            console.log('published', content)
+            if (verifyEvent(content)) {
+              content[verifiedSymbol] = true
+              await Promise.any(pool.publish(Object.keys(relays), content))
+              console.log('published', content)
+            }
           }
         }
         // }
@@ -435,8 +439,6 @@ export async function generateUserWallet(event: EventTemplate) {
       expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
     })
 
-    const pkpAddress = ethers.utils.computeAddress(`0x${PKP_PUBLIC_KEY}`)
-
     const sessionSig = getFirstSessionSig(sessionSigs)
 
     const storedKeyMetadata = await fetchPrivateKey({
@@ -451,7 +453,6 @@ export async function generateUserWallet(event: EventTemplate) {
       publicKey: PKP_PUBLIC_KEY,
       ciphertext: storedKeyMetadata.ciphertext,
       dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
-      pkpAddress,
       accessControlConditions: [allowPkpAddressToDecrypt],
       nostrRequest: event,
       supabase: {
@@ -461,6 +462,8 @@ export async function generateUserWallet(event: EventTemplate) {
         password: SUPABASE_ADMIN_PASSWORD,
       },
     }
+    console.log('jsParams', jsParams)
+    console.log('allowPkpAddressToDecrypt', allowPkpAddressToDecrypt)
 
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
@@ -479,7 +482,7 @@ export async function generateUserWallet(event: EventTemplate) {
 }
 
 export async function sendTransaction(event: VerifiedEvent) {
-  if (!GENERATE_WALLET_IPFS_ID || !PKP_PUBLIC_KEY) return
+  if (!PKP_PUBLIC_KEY) return
   let litNodeClient: LitNodeClient
 
   try {
@@ -513,8 +516,6 @@ export async function sendTransaction(event: VerifiedEvent) {
       expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
     })
 
-    const pkpAddress = ethers.utils.computeAddress(`0x${PKP_PUBLIC_KEY}`)
-
     const sessionSig = getFirstSessionSig(sessionSigs)
 
     const storedKeyMetadata = await fetchPrivateKey({
@@ -524,20 +525,6 @@ export async function sendTransaction(event: VerifiedEvent) {
     })
 
     const allowPkpAddressToDecrypt = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
-
-    // const accessControlConditions = [
-    //   {
-    //     contractAddress: '',
-    //     standardContractType: '',
-    //     chain: 'ethereum',
-    //     method: '',
-    //     parameters: [':userAddress'],
-    //     returnValueTest: {
-    //       comparator: '=',
-    //       value: pkpAddress,
-    //     },
-    //   },
-    // ]
 
     const getChainInfo = (chain: keyof typeof LIT_CHAINS) => {
       if (LIT_CHAINS[chain] === undefined)
@@ -596,43 +583,135 @@ export async function sendTransaction(event: VerifiedEvent) {
 
     const userKeystore = JSON.parse(keystore.key)
 
-    // console.log('signedTransaction read ....')
-    // const signedTransaction = await signTransactionWithEncryptedKey({
-    //   pkpSessionSigs: sessionSigs,
-    //   network: 'nostr',
-    //   id: WRAPPED_KEY_ID,
-    //   unsignedTransaction: event,
-    //   broadcast: false,
-    //   litNodeClient,
-    //   seedCiphertext: userKeystore.seedCiphertext,
-    //   seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
-    // })
+    const jsParams = {
+      publicKey: PKP_PUBLIC_KEY,
+      ciphertext: storedKeyMetadata.ciphertext,
+      dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
+      accessControlConditions: [allowPkpAddressToDecrypt],
+      nostrRequest: event,
+      seedCiphertext: userKeystore.seedCiphertext,
+      seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+      supabase: {
+        url: SUPABASE_URL,
+        serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+        email: SUPABASE_ADMIN_EMAIL,
+        password: SUPABASE_ADMIN_PASSWORD,
+      },
+    }
 
-    // console.log('signedTransaction', signedTransaction)
+    console.log('jsParams', jsParams)
+    console.log('allowPkpAddressToDecrypt', allowPkpAddressToDecrypt)
 
     const sendTransactionWithLitAction = await litNodeClient.executeJs({
       sessionSigs,
-      // ipfsId: GENERATE_WALLET_IPFS_ID,
       code: LASendTransaction,
-      jsParams: {
-        publicKey: PKP_PUBLIC_KEY,
-        ciphertext: storedKeyMetadata.ciphertext,
-        dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
-        pkpAddress,
-        accessControlConditions: [allowPkpAddressToDecrypt],
-        nostrRequest: event,
-        supabase: {
-          url: SUPABASE_URL,
-          serviceRole: SUPABASE_SERVICE_ROLE_KEY,
-          email: SUPABASE_ADMIN_EMAIL,
-          password: SUPABASE_ADMIN_PASSWORD,
-        },
-      },
+      jsParams,
     })
 
     console.log('sendTransactionWithLitAction', sendTransactionWithLitAction)
 
     // console.log('generatesend.response', JSON.stringify(sendTransactionWithLitAction, null, 2))
+    return
+  } catch (error) {
+    console.error(error)
+  } finally {
+    litNodeClient?.disconnect()
+  }
+}
+
+export async function ethTransfer(event: VerifiedEvent) {
+  if (!PKP_PUBLIC_KEY) return
+  let litNodeClient: LitNodeClient
+
+  try {
+    const ethersSigner = generateEtherSigner()
+
+    console.log('🔄 Connecting to Lit network...')
+    const litNodeClient = generateLitNodeClient()
+    await litNodeClient.connect()
+    console.log('✅ Connected to Lit network')
+
+    const sessionSigs = await litNodeClient.getPkpSessionSigs({
+      pkpPublicKey: PKP_PUBLIC_KEY!,
+      //  capabilityAuthSigs: [capacityDelegationAuthSig],
+      authMethods: [
+        await EthWalletProvider.authenticate({
+          signer: ethersSigner,
+          litNodeClient,
+          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+        }),
+      ],
+      resourceAbilityRequests: [
+        {
+          resource: new LitPKPResource('*'),
+          ability: LitAbility.PKPSigning,
+        },
+        {
+          resource: new LitActionResource('*'),
+          ability: LitAbility.LitActionExecution,
+        },
+      ],
+      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(), // 10 minutes
+    })
+
+    const sessionSig = getFirstSessionSig(sessionSigs)
+
+    const storedKeyMetadata = await fetchPrivateKey({
+      id: WRAPPED_KEY_ID,
+      sessionSig: sessionSig,
+      litNetwork: litNodeClient.config.litNetwork,
+    })
+
+    const allowPkpAddressToDecrypt = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    await supabaseClient.auth.signInWithPassword({
+      email: SUPABASE_ADMIN_EMAIL,
+      password: SUPABASE_ADMIN_PASSWORD,
+    })
+
+    const { data: keystore } = await supabaseClient
+      .from('keystore')
+      .select('key')
+      .eq('pubkey', event.pubkey)
+      .single()
+
+    if (!keystore) {
+      throw new Error('No keystore found for the given pubkey')
+    }
+
+    const userKeystore = JSON.parse(keystore.key)
+
+    const jsParams = {
+      publicKey: PKP_PUBLIC_KEY,
+      ciphertext: storedKeyMetadata.ciphertext,
+      dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
+      accessControlConditions: [allowPkpAddressToDecrypt],
+      nostrRequest: event,
+      seedCiphertext: userKeystore.seedCiphertext,
+      seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+      toAddress: '0x407db279345Ecce984ffCEB2DF9f161A49c87c5C',
+      chain: 'sepolia',
+      value: '0.001',
+      supabase: {
+        url: SUPABASE_URL,
+        serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+        email: SUPABASE_ADMIN_EMAIL,
+        password: SUPABASE_ADMIN_PASSWORD,
+      },
+    }
+
+    console.log('jsParams', jsParams)
+    console.log('allowPkpAddressToDecrypt', allowPkpAddressToDecrypt)
+
+    const ethTransferWithLitAction = await litNodeClient.executeJs({
+      sessionSigs,
+      code: LAEthTransfer,
+      jsParams,
+    })
+
+    console.log('ethTransfer', ethTransferWithLitAction)
+
     return
   } catch (error) {
     console.error(error)
