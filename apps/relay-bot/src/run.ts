@@ -167,8 +167,11 @@ export const action = async (
                       console.error('Error sending response to user:', error)
                     }
                   }
-                }
-                if (verifiedMessage.toLowerCase().includes('info')) {
+                } else if (verifiedMessage.toLowerCase().includes('send')) {
+                  // send lit action call here
+                } else if (verifiedMessage.toLowerCase().includes('topup')) {
+                  // topup lit action call here
+                } else {
                   // info lit action call here
                   const info = await informationFeatureWithEncryptedKey({
                     pkpSessionSigs,
@@ -187,12 +190,6 @@ export const action = async (
                       console.error('Error sending response to user:', error)
                     }
                   }
-                }
-                if (verifiedMessage.toLowerCase().includes('send')) {
-                  // send lit action call here
-                }
-                if (verifiedMessage.toLowerCase().includes('topup')) {
-                  // topup lit action call here
                 }
               }
             } catch (error) {

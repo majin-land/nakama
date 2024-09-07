@@ -53,11 +53,7 @@ const LIT_PREFIX = 'lit_' as const;
       return;
     }
 
-    const nostrReplyMessage = JSON.stringify(
-      '1. register /n 2. send transaction /n 3. top up /n 4. voucher',
-    )
-
-    // console.log(privateKey, decryptedPrivateKey)
+    const nostrReplyMessage = 'Available commands : \ninfo: Key details for users.\nregister: Register a new wallet.\nsend: Send a transaction.\ntopup: Top up a wallet.\nvoucher: Get a voucher.\n'
 
     const nostrReply = {
       kind: EncryptedDirectMessage,
