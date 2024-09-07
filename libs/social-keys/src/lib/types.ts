@@ -230,7 +230,9 @@ export interface NostrMetadata {
   website: `https://${string}`
 }
 
-export interface NostrRelays { [url: string]: { read: boolean; write: boolean } }
+export interface NostrRelays {
+  [url: string]: { read: boolean; write: boolean }
+}
 
 export interface NostrEvent {
   kind: number
@@ -271,6 +273,8 @@ export interface SignTransactionParamsSupportedEvm extends SignTransactionParams
 export interface SignTransactionParamsSupportedEvmNostr extends SignTransactionParams {
   unsignedTransaction: VerifiedEvent
   network: Extract<Network, 'nostr'>
+  seedCiphertext?: string
+  seedDataToEncryptHash?: string
 }
 
 export interface SignTransactionParamsSupportedSolana extends SignTransactionParams {
