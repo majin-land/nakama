@@ -178,7 +178,7 @@ export const action = async (
                     id: wrappedKeyId,
                     nostrEvent: event,
                     litNodeClient,
-                  } as unknown as SignNostrEventWithEncryptedKeyParams)
+                  } as unknown as InfoFeatureWithEncryptedKeyParams)
 
                   if (info) {
                     console.log('✅ Information: ', JSON.stringify(info))

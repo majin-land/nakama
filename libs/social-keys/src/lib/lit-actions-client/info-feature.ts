@@ -30,7 +30,7 @@ export async function infoFeatureWithLitAction(
     nostrEvent,
   } = args;
 
-  const { pkpAddress, ciphertext, dataToEncryptHash } = storedKeyMetadata;
+  const { ciphertext, dataToEncryptHash } = storedKeyMetadata;
   const result = await litNodeClient.executeJs({
     sessionSigs: pkpSessionSigs,
     code: litActionCode,
