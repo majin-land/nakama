@@ -1,5 +1,6 @@
 import { Metadata } from 'https://esm.sh/nostr-tools/kinds'
 import { getPublicKey, finalizeEvent } from 'https://esm.sh/nostr-tools@2.7.2/pure'
+const { removeSaltFromDecryptedKey } = require('../utils.js')
 
 /**
  *
@@ -13,18 +14,6 @@ import { getPublicKey, finalizeEvent } from 'https://esm.sh/nostr-tools@2.7.2/pu
  *
  * @returns { Promise<string> } - Returns a message signed by the Ethers Wrapped key. Or returns errors if any.
  */
-
-const LIT_PREFIX = 'lit_' as const
-
-function removeSaltFromDecryptedKey(decryptedPrivateKey) {
-  if (!decryptedPrivateKey.startsWith(LIT_PREFIX)) {
-    throw new Error(
-      `Error: PKey was not encrypted with salt; all wrapped keys must be prefixed with '${LIT_PREFIX}'`,
-    )
-  }
-
-  return decryptedPrivateKey.slice(LIT_PREFIX.length)
-}
 
 ;(async () => {
   let decryptedPrivateKey

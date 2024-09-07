@@ -4,7 +4,8 @@ import * as ethers from 'ethers'
 import { EthereumLitTransaction } from '@lit-protocol/wrapped-keys'
 
 import { SimplePool, finalizeEvent, verifyEvent } from 'nostr-tools'
-import { RelayList } from 'nostr-tools/kinds'
+import { RelayList, EncryptedDirectMessage } from 'nostr-tools/kinds'
+import { encrypt as nip04Encrypt } from 'nostr-tools/nip04'
 import { SignRelayListWithEncryptedKeyParams, api } from '@nakama/social-keys'
 
 const { signRelayListWithEncryptedKey } = api
@@ -174,4 +175,15 @@ export const getSignedRelayList = async (pkpSessionSigs, wrappedKey, litNodeClie
     nostr_write_relays,
     nostr_read_relays,
   }
+}
+
+export async function nostrResponse(pubkey, privatekey, message) {
+  const nostrReply = {
+    kind: EncryptedDirectMessage,
+    tags: [['p', pubkey]],
+    created_at: Math.floor(Date.now() / 1000),
+    content: await nip04Encrypt(privatekey, pubkey, message),
+  }
+
+  return JSON.stringify(finalizeEvent(nostrReply, privatekey))
 }
