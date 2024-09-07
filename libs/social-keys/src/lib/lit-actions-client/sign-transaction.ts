@@ -13,6 +13,8 @@ import {
 import { GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK } from '@lit-protocol/constants';
 import { VerifiedEvent } from 'nostr-tools';
 
+import * as fs from 'fs'
+
 interface SignTransactionWithLitActionParams {
   litNodeClient: ILitNodeClient;
   pkpSessionSigs: SessionSigsMap;
@@ -24,6 +26,7 @@ interface SignTransactionWithLitActionParams {
   seedCiphertext?: string;
   seedDataToEncryptHash?: string;
 }
+const litActionCode = fs.readFileSync('./apps/lit-action/dist/sign-transaction.js', 'utf8')
 
 export async function signTransactionWithLitAction({
   accessControlConditions,
@@ -42,10 +45,12 @@ export async function signTransactionWithLitAction({
     seedEcryptedKey.ciphertext = seedCiphertext 
     seedEcryptedKey.dataToEncryptHash = seedDataToEncryptHash
   }
+  console.log(' ciphertext, dataToEncryptHash, pkpAddress', {  ciphertext, dataToEncryptHash, pkpAddress})
 
   const result = await litNodeClient.executeJs({
     sessionSigs: pkpSessionSigs,
-    ipfsId: litActionIpfsCid,
+    // ipfsId: litActionIpfsCid,
+    code: litActionCode,
     jsParams: {
       pkpAddress,
       ciphertext,
@@ -55,10 +60,10 @@ export async function signTransactionWithLitAction({
       accessControlConditions,
       ...seedEcryptedKey
     },
-    ipfsOptions: {
-      overwriteCode:
-        GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK[litNodeClient.config.litNetwork],
-    },
+    // ipfsOptions: {
+    //   overwriteCode:
+    //     GLOBAL_OVERWRITE_IPFS_CODE_BY_NETWORK[litNodeClient.config.litNetwork],
+    // },
   });
 
   return postLitActionValidation(result);

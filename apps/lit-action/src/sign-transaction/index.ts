@@ -21,6 +21,7 @@ import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh
 (async () => {
   const nostrTransaction = unsignedTransaction;
   const isValid = verifyEvent(nostrTransaction); // @JsParams unsignedTransaction
+  
   try {
     let decryptedPrivateKey;
     try {
@@ -37,12 +38,40 @@ import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh
       Lit.Actions.setResponse({ response: errorMessage });
       return;
     }
-  
+
     if (!decryptedPrivateKey) {
       // Exit the nodes which don't have the decryptedData
       return;
     }
-  
+
+    let walletDecryptedPrivateKey;
+    try {
+      walletDecryptedPrivateKey = await Lit.Actions.decryptToSingleNode({
+        accessControlConditions: [
+          {
+            contractAddress: '',
+            standardContractType: '',
+            chain: 'ethereum',
+            method: 'eth_getBalance',
+            parameters: [':userAddress', 'latest'],
+            returnValueTest: {
+              comparator: '>=',
+              value: '0',
+            },
+          },
+        ],
+        ciphertext: seedCiphertext, // @JSParams seedCiphertext
+        dataToEncryptHash: seedDataToEncryptHash, // @JSParams seedDataToEncryptHash
+        chain: 'ethereum',
+        authSig: null,
+      });
+    } catch (error) {
+      Lit.Actions.setResponse({ response: error.message });
+    }
+
+    Lit.Actions.setResponse({ response: JSON.stringify(walletDecryptedPrivateKey) }); 
+    return;
+
     let privateKey;
     try {
       privateKey = removeSaltFromDecryptedKey(decryptedPrivateKey);
@@ -52,35 +81,46 @@ import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh
     }
   
     // Decrypt the content of the nostr request
-    // const nostrPrivateKey = ethers.utils.arrayify(privateKey.slice(4))
-    const nostrPrivateKey = privateKey
-    Lit.Actions.setResponse({ response: JSON.stringify(decryptedPrivateKey) });
-    return
-    const instruction = await nip04Decrypt(nostrPrivateKey, nostrTransaction.pubkey, nostrTransaction.content);
-    console.info('Received DM:', instruction);
-   
+    // const nostrPrivateKey = ethers.utils.arrayify(privateKey.slice(2))
+    // const nostrPrivateKey = privateKey.slice(2)
+
+    const instruction = await Lit.Actions.runOnce(
+      { waitForResponse: true, name: 'nip04Decrypt' },
+      async () => {
+        const nostrPrivateKey = privateKey.slice(2)
+        // console.log(privateKey.slice(2), '-or-', nostrPrivateKey)
+        
+        const _instruction = await nip04Decrypt(nostrPrivateKey, nostrTransaction.pubkey, nostrTransaction.content);
+        return _instruction
+      })
+      console.info('Received DM:', instruction);
+      // Lit.Actions.setResponse({ response: instruction });
+      // return
+    
+
+
     // Example Instructions:
     // send 10 of token 0x003243243214 via ethereum chain 0x314 from account 0 to 0x4324132353 
     // send 10 of gas via ethereum chain 0x314 to 0x4324132353
     // send 10 of token 0x003243243214 via solana chain mainnet from account 1 to 0x4324132353
     // send 10 of coin via solana chain mainnet to 0x4324132353
   
-    const regex = /^send (\d+) of (\w+)(?: (0x[a-fA-F0-9]+))? via (\w+) chain (\w+|0x[a-fA-F0-9]+) to (0x[a-fA-F0-9]+)$/;
+    const regex = /\bsend\s+(\d+)\s+of\s+(token\s+(0x[a-fA-F0-9]+)|gas|coin)\s+via\s+(ethereum|solana)\s+chain\s+(\S+)\s+(?:from\s+account\s+\d+\s+)?to\s+(0x[a-fA-F0-9]+)\b/;
   
     const match = instruction.match(regex);
-    
+  
     if (match) {
       const command = {
         amount: parseInt(match[1], 10),
-        type: match[2],
-        token: match[3] || null, // Optional, could be null if not present
-        chain: match[4],
-        chainId: match[5],
-        recipient: match[6]
+        type: match[2].startsWith('token') ? 'token' : match[2], // "token", "gas", or "coin"
+        token: match[3] || null,                  // The token address if present, or an empty string
+        chain: match[4],                        // e.g., "ethereum" or "solana"
+        chainId: match[5],                      // e.g., "0x314" or "mainnet"
+        recipient: match[6]                     // e.g., "0x4324132353"
       };
-  
+      
       if (command.chain === 'ethereum') {
-        if (['gas', 'coin'].includes(type)) {
+        if (['gas', 'coin'].includes(command.type)) {
           unsignedTransaction = {
             chainId: command.chainId,
             chain: "yellowstone",
@@ -93,9 +133,6 @@ import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh
         } else {
           throw new Error('Invalid currency type')
         }
-
-        Lit.Actions.setResponse({ response: JSON.stringify(unsignedTransaction) });
-        return;
   
         if (!unsignedTransaction.toAddress) {
           Lit.Actions.setResponse({
@@ -129,7 +166,7 @@ import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh
   
         let walletDecryptedPrivateKey;
         try {
-          walletDecryptedPrivateKey = await Lit.Actions.decryptAndCombine({
+          walletDecryptedPrivateKey = await Lit.Actions.decryptToSingleNode({
             accessControlConditions,
             ciphertext: seedCiphertext, // @JSParams seedCiphertext
             dataToEncryptHash: seedDataToEncryptHash, // @JSParams seedDataToEncryptHash
@@ -140,6 +177,9 @@ import { decrypt as nip04Decrypt, encrypt as nip04Encrypt } from "https://esm.sh
           Lit.Actions.setResponse({ response: error.message });
         }
   
+        
+        Lit.Actions.setResponse({ response: JSON.stringify(walletDecryptedPrivateKey) });
+        return;
         // const path = "m/44'/60'/0'/0"
         const wallet = ethers.Wallet.fromSeed(walletDecryptedPrivateKey);
   

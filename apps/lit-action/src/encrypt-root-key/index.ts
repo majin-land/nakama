@@ -94,6 +94,8 @@ const go = async () => {
       Lit.Actions.setResponse({ response: 'Error: When decrypting to a single node- ' + err.message });
       return;
     }
+    // Lit.Actions.setResponse({ response: decryptedPrivateKey });
+    // return;
 
     // Encrypt and store user keystore
     const userKeystore = await Lit.Actions.runOnce(

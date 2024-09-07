@@ -85,6 +85,24 @@ export async function startService({
 
   const relays = await loadNostrRelayList(nostrPubkey, nostrSeckey, { pool })
 
+  const instruction =
+    'send 10 of token 0x003243243214 via ethereum chain 0x314 from account 0 to 0x4324132353'
+  const regex =
+    /^send (\d+) of (\w+)(?: (0x[a-fA-F0-9]+))? via (\w+) chain (\w+|0x[a-fA-F0-9]+) from account (\d+) to (0x[a-fA-F0-9]+)$/
+
+  const match = instruction.match(regex)
+
+  console.log(match, 'matchmatchmatchmatchmatchmatchmatch')
+  const command = {
+    amount: parseInt(match[1], 10),
+    type: match[2],
+    token: match[3] || null, // Optional, could be null if not present
+    chain: match[4],
+    chainId: match[5],
+    recipient: match[6]
+  };
+  console.log(command, 'ssssssssssssssssssssss')
+
   console.info('nostrRelays:', relays)
 
   const profileMetadata = await pool.get(Object.keys(relays), {
@@ -168,6 +186,7 @@ export async function startService({
           // if (payload.toLowerCase().includes('register')) {
           // success
           // const result = await generateUserWallet(event)
+          // console.log('--------------', result.content)
           // if (result) {
           //   console.log(result.response)
 
@@ -183,7 +202,7 @@ export async function startService({
           //   if (payload.toLowerCase().includes('send')) {
           // const response = await sendTransaction(event)
           const result = await sendTransaction(event)
-          // console.log(result)
+          console.log(result)
 
           // if (result) {
           //   console.log(result.response)
@@ -615,40 +634,48 @@ export async function sendTransaction(event: VerifiedEvent) {
 
     const userKeystore = JSON.parse(keystore.key)
 
-    console.log('signedTransaction read ....')
-    const signedTransaction = await signTransactionWithEncryptedKey({
-      pkpSessionSigs: sessionSigs,
-      network: 'nostr',
-      id: WRAPPED_KEY_ID,
-      unsignedTransaction: event,
-      broadcast: false,
-      litNodeClient,
-      seedCiphertext: userKeystore.seedCiphertext,
-      seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+    // console.log('signedTransaction read ....')
+    // const signedTransaction = await signTransactionWithEncryptedKey({
+    //   pkpSessionSigs: sessionSigs,
+    //   network: 'nostr',
+    //   id: WRAPPED_KEY_ID,
+    //   unsignedTransaction: event,
+    //   broadcast: false,
+    //   litNodeClient,
+    //   seedCiphertext: userKeystore.seedCiphertext,
+    //   seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+    // })
+
+    // console.log('signedTransaction', signedTransaction)
+    // console.log('ssssssssssssss', {
+    //   ciphertext: storedKeyMetadata.ciphertext,
+    //   dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
+    //   pkpAddress,
+    // })
+    const sendTransactionWithLitAction = await litNodeClient.executeJs({
+      sessionSigs,
+      // ipfsId: GENERATE_WALLET_IPFS_ID,
+      code: litActionCodeSendTransaction,
+      jsParams: {
+        publicKey: PKP_PUBLIC_KEY,
+        ciphertext: storedKeyMetadata.ciphertext,
+        dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
+        pkpAddress,
+        accessControlConditions: [allowPkpAddressToDecrypt],
+        // nostrRequest: event,
+        unsignedTransaction: event,
+        seedCiphertext: userKeystore.seedCiphertext,
+        seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+        // supabase: {
+        //   url: SUPABASE_URL,
+        //   serviceRole: SUPABASE_SERVICE_ROLE_KEY,
+        //   email: SUPABASE_ADMIN_EMAIL,
+        //   password: SUPABASE_ADMIN_PASSWORD,
+        // },
+      },
     })
 
-    console.log('signedTransaction', signedTransaction)
-
-    // const sendTransactionWithLitAction = await litNodeClient.executeJs({
-    //   sessionSigs,
-    //   // ipfsId: GENERATE_WALLET_IPFS_ID,
-    //   code: litActionCodeSendTransaction,
-    //   jsParams: {
-    //     publicKey: PKP_PUBLIC_KEY,
-    //     ciphertext: storedKeyMetadata.ciphertext,
-    //     dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
-    //     pkpAddress,
-    //     accessControlConditions: [allowPkpAddressToDecrypt],
-    //     nostrRequest: event,
-    //     unsignedTransaction,
-    //     supabase: {
-    //       url: SUPABASE_URL,
-    //       serviceRole: SUPABASE_SERVICE_ROLE_KEY,
-    //       email: SUPABASE_ADMIN_EMAIL,
-    //       password: SUPABASE_ADMIN_PASSWORD,
-    //     },
-    //   },
-    // })
+    console.log(sendTransactionWithLitAction, 'sssssss')
 
     // console.log('generatesend.response', JSON.stringify(sendTransactionWithLitAction, null, 2))
     return
