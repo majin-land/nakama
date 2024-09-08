@@ -6,18 +6,21 @@ import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
 import { SimplePool, verifyEvent } from 'nostr-tools'
 import { RelayList, EncryptedDirectMessage } from 'nostr-tools/kinds'
 import { npubEncode } from 'nostr-tools/nip19'
+import { createClient } from '@supabase/supabase-js'
 
 import {
   api,
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
-  InfoFeatureWithEncryptedKeyParams,
+  NostrReplyWithEncryptedKeyParams,
+  WalletInfoWithEncryptedKeyParams,
 } from '@nakama/social-keys'
 
 const {
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
-  informationFeatureWithEncryptedKey,
+  nostrReplyWithEncryptedKey,
+  walletInfoWithEncryptedKey,
 } = api
 
 // required env
@@ -31,6 +34,26 @@ const SUPABASE_ADMIN_EMAIL = process.env.SUPABASE_ADMIN_EMAIL
 const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
 
 const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
+
+const getUserKeyStore = async (pubkey) => {
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  await supabaseClient.auth.signInWithPassword({
+    email: SUPABASE_ADMIN_EMAIL,
+    password: SUPABASE_ADMIN_PASSWORD,
+  })
+
+  const { data: keystore } = await supabaseClient
+    .from('keystore')
+    .select('key')
+    .eq('pubkey', pubkey)
+    .single()
+
+  if (!keystore) {
+    throw new Error('No keystore found for the given pubkey')
+  }
+
+  return JSON.parse(keystore.key)
+}
 
 export const action = async (
   pkpPublicKey: string,
@@ -73,7 +96,7 @@ export const action = async (
         await EthWalletProvider.authenticate({
           signer: ethersSigner,
           litNodeClient,
-          expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(),
+          expiration: new Date(Date.now() + 1000 * 60 * 14).toISOString(),
         }),
       ],
       resourceAbilityRequests: [
@@ -82,7 +105,7 @@ export const action = async (
           ability: LitAbility.LitActionExecution,
         },
       ],
-      expiration: new Date(Date.now() + 1000 * 60 * 10).toISOString(),
+      expiration: new Date(Date.now() + 1000 * 60 * 14).toISOString(),
     })
     console.log('✅ Got PKP Session Sigs')
 
@@ -143,7 +166,7 @@ export const action = async (
                 } as unknown as SignNostrEventWithEncryptedKeyParams)
                 console.log('✅ Message: ', JSON.parse(verifiedMessage))
 
-                if (verifiedMessage.toLowerCase().includes('register')) {
+                if (verifiedMessage.toLowerCase().trim() == 'register') {
                   // register lit action call here
                   const register = await registerUserWalletWithEncryptedKey({
                     pkpSessionSigs,
@@ -171,22 +194,81 @@ export const action = async (
                       console.error('Error sending response to user:', error)
                     }
                   }
-                } else if (verifiedMessage.toLowerCase().includes('send')) {
+                } else if (verifiedMessage.toLowerCase().startsWith('send')) {
                   // send lit action call here
-                } else if (verifiedMessage.toLowerCase().includes('topup')) {
-                  // topup lit action call here
-                } else {
-                  // info lit action call here
-                  const info = await informationFeatureWithEncryptedKey({
+                  const infoMessage =
+                    'Available commands : \ninfo: Available command for users. (this information list)\nregister: Register a new wallet.\nsend: Send a transaction.\ntopup: Top up a wallet.\nvoucher: Get a voucher.\n'
+
+                  // result lit action call here
+                  const result = await nostrReplyWithEncryptedKey({
                     pkpSessionSigs,
                     id: wrappedKeyId,
-                    nostrEvent: event,
                     litNodeClient,
-                  } as unknown as InfoFeatureWithEncryptedKeyParams)
+                    pubkey: event.pubkey,
+                    message: infoMessage,
+                  } as unknown as NostrReplyWithEncryptedKeyParams)
 
-                  if (info) {
-                    console.log('✅ Information: ', JSON.stringify(info))
-                    const content = JSON.parse(info)
+                  if (result) {
+                    console.log('✅ Information: ', result)
+                    const content = JSON.parse(result)
+                    try {
+                      await Promise.all(pool.publish(Object.keys(nostr_relays), content))
+                      console.info('✅ Response sent to show information:', content)
+                    } catch (error) {
+                      console.error('Error sending response to user:', error)
+                    }
+                  }
+                } else if (verifiedMessage.toLowerCase().includes('wallet')) {
+                  // topup lit action call here
+                  const userKeystore = await getUserKeyStore(event.pubkey)
+                  // result lit action call here
+                  const information = await walletInfoWithEncryptedKey({
+                    pkpSessionSigs,
+                    id: wrappedKeyId,
+                    litNodeClient,
+                    pubkey: event.pubkey,
+                    seedCiphertext: userKeystore.seedCiphertext,
+                    seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+                    chain: 'sepolia',
+                    nostrEvent: event,
+                  } as unknown as WalletInfoWithEncryptedKeyParams)
+
+                  if (!information) return
+                  console.log('✅ Wallet Info: ', information)
+
+                  // result lit action call here
+                  const result = await nostrReplyWithEncryptedKey({
+                    pkpSessionSigs,
+                    id: wrappedKeyId,
+                    litNodeClient,
+                    pubkey: event.pubkey,
+                    message: information,
+                  } as unknown as NostrReplyWithEncryptedKeyParams)
+                  if (result) {
+                    const content = JSON.parse(result)
+                    try {
+                      await Promise.all(pool.publish(Object.keys(nostr_relays), content))
+                      console.info('✅ Response sent to show wallet info:', content)
+                    } catch (error) {
+                      console.error('Error sending response to user:', error)
+                    }
+                  }
+                } else {
+                  const infoMessage =
+                    'Available commands : \ninfo: Available command for users. (this information list)\nregister: Register a new wallet.\nsend: Send a transaction.\nwallet: Get wallet info and balance.\n'
+
+                  // result lit action call here
+                  const result = await nostrReplyWithEncryptedKey({
+                    pkpSessionSigs,
+                    id: wrappedKeyId,
+                    litNodeClient,
+                    pubkey: event.pubkey,
+                    message: infoMessage,
+                  } as unknown as NostrReplyWithEncryptedKeyParams)
+
+                  if (result) {
+                    console.log('✅ Information: ', result)
+                    const content = JSON.parse(result)
                     try {
                       await Promise.all(pool.publish(Object.keys(nostr_relays), content))
                       console.info('✅ Response sent to show information:', content)

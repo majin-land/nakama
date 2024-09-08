@@ -255,6 +255,16 @@ export interface SignRelayListParamsSupported extends SignTransactionParams {
 export interface SignNostrEventParamsSupported extends SignTransactionParams {
   nostrEvent: NostrEvent
 }
+export interface NostrReplyParamsSupported extends SignTransactionParams {
+  pubkey: string
+  message: string
+}
+
+export interface WalletInfoParamsSupported extends SignNostrEventParamsSupported {
+  seedCiphertext: string
+  seedDataToEncryptHash: string
+  chain: string
+}
 
 export interface RegisterUserWalletParamsSupported extends SignTransactionParams {
   nostrEvent: NostrEvent
@@ -304,4 +314,5 @@ export type SignMetadataWithEncryptedKeyParams = SignMetadataParamsSupported
 export type SignRelayListWithEncryptedKeyParams = SignRelayListParamsSupported
 export type SignNostrEventWithEncryptedKeyParams = SignNostrEventParamsSupported
 export type RegisterUserWalletWithEncryptedKeyParams = RegisterUserWalletParamsSupported
-export type InfoFeatureWithEncryptedKeyParams = SignNostrEventParamsSupported
+export type NostrReplyWithEncryptedKeyParams = NostrReplyParamsSupported
+export type WalletInfoWithEncryptedKeyParams = WalletInfoParamsSupported

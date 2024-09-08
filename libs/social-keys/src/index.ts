@@ -12,7 +12,8 @@ import {
   signRelayListWithEncryptedKey,
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
-  informationFeatureWithEncryptedKey,
+  nostrReplyWithEncryptedKey,
+  walletInfoWithEncryptedKey,
 } from './lib/api'
 import {
   CHAIN_ETHEREUM,
@@ -31,9 +32,7 @@ import {
   getBaseTransactionForNetwork,
 } from './lib/wrapper-keys/utils'
 
-import {
-fetchPrivateKey
-} from './lib/service-client'
+import { fetchPrivateKey } from './lib/service-client'
 
 import type { SupportedNetworks } from './lib/service-client/types'
 import type {
@@ -63,7 +62,8 @@ import type {
   SignRelayListWithEncryptedKeyParams,
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
-  InfoFeatureWithEncryptedKeyParams,
+  NostrReplyWithEncryptedKeyParams,
+  WalletInfoWithEncryptedKeyParams,
 } from './lib/types'
 import { signTransactionWithLitAction } from './lib/lit-actions-client'
 
@@ -92,7 +92,8 @@ export const api = {
   signTransactionWithLitAction,
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
-  informationFeatureWithEncryptedKey,
+  nostrReplyWithEncryptedKey,
+  walletInfoWithEncryptedKey,
 }
 
 export {
@@ -128,5 +129,6 @@ export {
   getFirstSessionSig,
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
-  InfoFeatureWithEncryptedKeyParams,
+  NostrReplyWithEncryptedKeyParams,
+  WalletInfoWithEncryptedKeyParams,
 }
