@@ -13,6 +13,7 @@ import {
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
   nostrReplyWithEncryptedKey,
+  sendCryptoWithEncryptedKey,
   walletInfoWithEncryptedKey,
 } from './lib/api'
 import {
@@ -63,6 +64,7 @@ import type {
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
   NostrReplyWithEncryptedKeyParams,
+  SendCryptoWithEncryptedKeyParams,
   WalletInfoWithEncryptedKeyParams,
 } from './lib/types'
 import { signTransactionWithLitAction } from './lib/lit-actions-client'
@@ -93,6 +95,7 @@ export const api = {
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
   nostrReplyWithEncryptedKey,
+  sendCryptoWithEncryptedKey,
   walletInfoWithEncryptedKey,
 }
 
@@ -130,5 +133,6 @@ export {
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
   NostrReplyWithEncryptedKeyParams,
+  SendCryptoWithEncryptedKeyParams,
   WalletInfoWithEncryptedKeyParams,
 }

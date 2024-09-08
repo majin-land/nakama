@@ -13,6 +13,7 @@ import {
   SignNostrEventWithEncryptedKeyParams,
   RegisterUserWalletWithEncryptedKeyParams,
   NostrReplyWithEncryptedKeyParams,
+  SendCryptoWithEncryptedKeyParams,
   WalletInfoWithEncryptedKeyParams,
 } from '@nakama/social-keys'
 
@@ -20,6 +21,7 @@ const {
   signNostrEventWithEncryptedKey,
   registerUserWalletWithEncryptedKey,
   nostrReplyWithEncryptedKey,
+  sendCryptoWithEncryptedKey,
   walletInfoWithEncryptedKey,
 } = api
 
@@ -166,7 +168,10 @@ export const action = async (
                 } as unknown as SignNostrEventWithEncryptedKeyParams)
                 console.log('✅ Message: ', JSON.parse(verifiedMessage))
 
-                if (verifiedMessage.toLowerCase().trim() == 'register') {
+                const command = JSON.parse(verifiedMessage).toLowerCase().trim()
+                console.log('command', command)
+
+                if (command == 'register') {
                   // register lit action call here
                   const register = await registerUserWalletWithEncryptedKey({
                     pkpSessionSigs,
@@ -194,32 +199,63 @@ export const action = async (
                       console.error('Error sending response to user:', error)
                     }
                   }
-                } else if (verifiedMessage.toLowerCase().startsWith('send')) {
-                  // send lit action call here
-                  const infoMessage =
-                    'Available commands : \ninfo: Available command for users. (this information list)\nregister: Register a new wallet.\nsend: Send a transaction.\ntopup: Top up a wallet.\nvoucher: Get a voucher.\n'
+                } else if (command.startsWith('send')) {
+                  console.log('🔄 Sending...')
+                  const regex = /^send (\d*\.?\d*) of (\w+) via (\w+) chain to (0x[a-fA-F0-9]+)$/
 
+                  const match = command.match(regex)
+                  console.log('match', match)
+                  if (!match) {
+                    console.log('no match')
+                    return
+                  }
+
+                  const matchedCommand = {
+                    amount: match[1],
+                    token: match[2] || null, // Optional, could be null if not present
+                    chain: match[3],
+                    recipient: match[4],
+                  }
+                  console.log('matchedCommand', matchedCommand)
+
+                  const userKeystore = await getUserKeyStore(event.pubkey)
+                  // result lit action call here
+                  const txHash = await sendCryptoWithEncryptedKey({
+                    pkpSessionSigs,
+                    id: wrappedKeyId,
+                    litNodeClient,
+                    seedCiphertext: userKeystore.seedCiphertext,
+                    seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
+                    nostrEvent: event,
+                  } as unknown as SendCryptoWithEncryptedKeyParams)
+
+                  if (!txHash) return
+                  console.log('✅ TX Hash: ', txHash)
+
+                  const message = `
+    Sending ${matchedCommand.amount} ETH
+    to ${matchedCommand.recipient}
+    via ${matchedCommand.chain} is successful!
+    Transaction hash: ${txHash}
+                  `
                   // result lit action call here
                   const result = await nostrReplyWithEncryptedKey({
                     pkpSessionSigs,
                     id: wrappedKeyId,
                     litNodeClient,
                     pubkey: event.pubkey,
-                    message: infoMessage,
+                    message,
                   } as unknown as NostrReplyWithEncryptedKeyParams)
-
                   if (result) {
-                    console.log('✅ Information: ', result)
                     const content = JSON.parse(result)
                     try {
                       await Promise.all(pool.publish(Object.keys(nostr_relays), content))
-                      console.info('✅ Response sent to show information:', content)
+                      console.info('✅ Response sent to show wallet info:', content)
                     } catch (error) {
                       console.error('Error sending response to user:', error)
                     }
                   }
-                } else if (verifiedMessage.toLowerCase().includes('wallet')) {
-                  // topup lit action call here
+                } else if (command == 'wallet') {
                   const userKeystore = await getUserKeyStore(event.pubkey)
                   // result lit action call here
                   const information = await walletInfoWithEncryptedKey({

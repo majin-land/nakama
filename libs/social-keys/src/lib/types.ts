@@ -266,6 +266,11 @@ export interface WalletInfoParamsSupported extends SignNostrEventParamsSupported
   chain: string
 }
 
+export interface SendCryptoParamsSupported extends SignNostrEventParamsSupported {
+  seedCiphertext: string
+  seedDataToEncryptHash: string
+}
+
 export interface RegisterUserWalletParamsSupported extends SignTransactionParams {
   nostrEvent: NostrEvent
   publicKey: string
@@ -316,3 +321,4 @@ export type SignNostrEventWithEncryptedKeyParams = SignNostrEventParamsSupported
 export type RegisterUserWalletWithEncryptedKeyParams = RegisterUserWalletParamsSupported
 export type NostrReplyWithEncryptedKeyParams = NostrReplyParamsSupported
 export type WalletInfoWithEncryptedKeyParams = WalletInfoParamsSupported
+export type SendCryptoWithEncryptedKeyParams = SendCryptoParamsSupported
