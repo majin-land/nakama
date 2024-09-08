@@ -1,4 +1,3 @@
-import { finalizeEvent } from 'https://esm.sh/nostr-tools@2.7.2/pure'
 import { decrypt as nip04Decrypt } from 'https://esm.sh/nostr-tools@2.7.2/nip04.js'
 const { removeSaltFromDecryptedKey } = require('../utils.js')
 
@@ -6,10 +5,9 @@ const { removeSaltFromDecryptedKey } = require('../utils.js')
  *
  * Signs a message with the Ethers wallet which is also decrypted inside the Lit Action.
  *
- * @jsParam pkpAddress - The Eth address of the PKP which is associated with the Wrapped Key
  * @jsParam ciphertext - For the encrypted Wrapped Key
  * @jsParam dataToEncryptHash - For the encrypted Wrapped Key
- * @jsParam unsignedMetadata - The unsigned metadata to be signed by the Wrapped Key
+ * @jsParam nostrEvent - nostr message
  * @jsParam accessControlConditions - The access control condition that allows only the pkpAddress to decrypt the Wrapped Key
  *
  * @returns { Promise<string> } - Returns a message signed by the Ethers Wrapped key. Or returns errors if any.
@@ -54,7 +52,7 @@ const { removeSaltFromDecryptedKey } = require('../utils.js')
 
   try {
     const response = payload
-    Lit.Actions.setResponse({ response: JSON.stringify(response) })
+    Lit.Actions.setResponse({ response: response })
   } catch (err) {
     const errorMessage = 'Error: When signing message- ' + err.message
     Lit.Actions.setResponse({ response: errorMessage })

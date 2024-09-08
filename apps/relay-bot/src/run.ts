@@ -156,8 +156,12 @@ export const action = async (
                     console.log('✅ New User registered: ', JSON.stringify(register))
                     const content = JSON.parse(register)
                     try {
-                      await Promise.all(pool.publish(Object.keys(nostr_relays), content))
-                      console.info('✅ Response sent to user:', content)
+                      if (verifyEvent(content)) {
+                        await Promise.all(pool.publish(Object.keys(nostr_relays), content))
+                        console.info('✅ Response sent to user:', content)
+                      } else {
+                        // use litaction to generate finalizeEvent
+                      }
                     } catch (error) {
                       console.error('Error sending response to user:', error)
                     }
