@@ -92,7 +92,7 @@ export const action = async (
     })
     await litNodeClient.connect()
     console.log('✅ Connected to Lit network')
-    const expiration = new Date(Date.now() + 1000 * 60 * 2).toISOString()
+    const expiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
     console.log('🔄 Getting PKP Session Sigs...')
     let pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
       pkpPublicKey,
@@ -316,9 +316,9 @@ export const action = async (
               }
             } catch (error) {
               console.error('Error handling event:', error)
-              const newExpiration = new Date(Date.now() + 1000 * 60 * 2).toISOString()
+              // Refresh Expiration time
+              const newExpiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
 
-              // const getSessionKey = await litNodeClient.()
               pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
                 pkpPublicKey,
                 authMethods: [
