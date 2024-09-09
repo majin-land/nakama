@@ -1,8 +1,8 @@
-import { signNostrEventWithLitAction } from '../lit-actions-client';
-import { getLitActionCid } from '../lit-actions-client/utils';
-import { fetchPrivateKey } from '../service-client';
-import { SignNostrEventWithEncryptedKeyParams } from '../types';
-import { getFirstSessionSig, getPkpAccessControlCondition } from '../utils';
+import { signNostrEventWithLitAction } from "../lit-actions-client"
+import { getLitActionCid } from "../lit-actions-client/utils"
+import { fetchCachePrivateKey } from "../utils"
+import { SignNostrEventWithEncryptedKeyParams } from "../types"
+import { getFirstSessionSig, getPkpAccessControlCondition } from "../utils"
 
 /**
  * Signs a transaction inside the Lit Action using the previously persisted wrapped key associated with the current LIT PK.
@@ -15,25 +15,23 @@ import { getFirstSessionSig, getPkpAccessControlCondition } from '../utils';
  * @returns { string } The signed transaction OR its transaction hash if you set `broadcast: true` and the LIT action supports this functionality.
  */
 export async function signNostrEventWithEncryptedKey(
-  params: SignNostrEventWithEncryptedKeyParams
+  params: SignNostrEventWithEncryptedKeyParams,
 ): Promise<string> {
-  const { litNodeClient, pkpSessionSigs, id } = params;
-  const sessionSig = getFirstSessionSig(pkpSessionSigs);
+  const { litNodeClient, pkpSessionSigs, id } = params
+  const sessionSig = getFirstSessionSig(pkpSessionSigs)
 
-  const storedKeyMetadata = await fetchPrivateKey({
+  const storedKeyMetadata = await fetchCachePrivateKey({
     id,
     sessionSig,
     litNetwork: litNodeClient.config.litNetwork,
-  });
+  })
 
-  const allowPkpAddressToDecrypt = getPkpAccessControlCondition(
-    storedKeyMetadata.pkpAddress
-  );
+  const allowPkpAddressToDecrypt = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
 
   return signNostrEventWithLitAction({
     ...params,
-    litActionIpfsCid: getLitActionCid('nostr', 'messageHandler'),
+    litActionIpfsCid: getLitActionCid("nostr", "messageHandler"),
     storedKeyMetadata,
     accessControlConditions: [allowPkpAddressToDecrypt],
-  });
+  })
 }

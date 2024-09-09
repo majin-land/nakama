@@ -1,7 +1,7 @@
-import { sendCryptoWithLitAction } from '../lit-actions-client'
-import { fetchPrivateKey } from '../service-client'
-import { SendCryptoWithEncryptedKeyParams } from '../types'
-import { getFirstSessionSig, getPkpAccessControlCondition } from '../utils'
+import { sendCryptoWithLitAction } from "../lit-actions-client"
+import { fetchCachePrivateKey } from "../utils"
+import { SendCryptoWithEncryptedKeyParams } from "../types"
+import { getFirstSessionSig, getPkpAccessControlCondition } from "../utils"
 
 /**
  * Replies with message information to users.
@@ -21,7 +21,7 @@ export async function sendCryptoWithEncryptedKey(
   const { litNodeClient, pkpSessionSigs, id } = params
   const sessionSig = getFirstSessionSig(pkpSessionSigs)
 
-  const storedKeyMetadata = await fetchPrivateKey({
+  const storedKeyMetadata = await fetchCachePrivateKey({
     id,
     sessionSig,
     litNetwork: litNodeClient.config.litNetwork,

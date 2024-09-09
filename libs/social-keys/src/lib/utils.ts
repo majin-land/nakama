@@ -1,14 +1,15 @@
-import * as ethers from 'ethers'
+import * as ethers from "ethers"
 
-import { log } from '@lit-protocol/misc'
+import { log } from "@lit-protocol/misc"
 import {
   AccsDefaultParams,
   AuthSig,
   SessionKeySignedMessage,
   SessionSigsMap,
-} from '@lit-protocol/types'
+} from "@lit-protocol/types"
 
-import { CHAIN_ETHEREUM } from './constants'
+import { fetchPrivateKey } from "./service-client"
+import { CHAIN_ETHEREUM } from "./constants"
 
 /**
  *
@@ -48,10 +49,10 @@ export function getPkpAddressFromSessionSig(pkpSessionSig: AuthSig): string {
     throw new Error(`Capabilities in the session's signedMessage is empty, but required.`)
   }
 
-  const delegationAuthSig = capabilities.find(({ algo }) => algo === 'LIT_BLS')
+  const delegationAuthSig = capabilities.find(({ algo }) => algo === "LIT_BLS")
 
   if (!delegationAuthSig) {
-    throw new Error('SessionSig is not from a PKP; no LIT_BLS capabilities found')
+    throw new Error("SessionSig is not from a PKP; no LIT_BLS capabilities found")
   }
 
   const pkpAddress = delegationAuthSig.address
@@ -74,14 +75,27 @@ export function getPkpAccessControlCondition(pkpAddress: string): AccsDefaultPar
   }
 
   return {
-    contractAddress: '',
-    standardContractType: '',
+    contractAddress: "",
+    standardContractType: "",
     chain: CHAIN_ETHEREUM,
-    method: '',
-    parameters: [':userAddress'],
+    method: "",
+    parameters: [":userAddress"],
     returnValueTest: {
-      comparator: '=',
+      comparator: "=",
       value: pkpAddress,
     },
   }
+}
+
+let cachedStoredKeyMetadata = null
+export async function fetchCachePrivateKey({ id, sessionSig, litNetwork }) {
+  if (!cachedStoredKeyMetadata) {
+    cachedStoredKeyMetadata = await fetchPrivateKey({
+      id,
+      sessionSig,
+      litNetwork,
+    })
+  }
+
+  return cachedStoredKeyMetadata
 }

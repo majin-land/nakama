@@ -1,8 +1,7 @@
-import { registerUserWalletWithLitAction } from '../lit-actions-client';
-import { getLitActionCid } from '../lit-actions-client/utils';
-import { fetchPrivateKey } from '../service-client';
-import { RegisterUserWalletWithEncryptedKeyParams } from '../types';
-import { getFirstSessionSig, getPkpAccessControlCondition } from '../utils';
+import { registerUserWalletWithLitAction } from "../lit-actions-client"
+import { fetchCachePrivateKey } from "../utils"
+import { RegisterUserWalletWithEncryptedKeyParams } from "../types"
+import { getFirstSessionSig, getPkpAccessControlCondition } from "../utils"
 
 /**
  * Signs a transaction inside the Lit Action using the previously persisted wrapped key associated with the current LIT PK.
@@ -15,25 +14,22 @@ import { getFirstSessionSig, getPkpAccessControlCondition } from '../utils';
  * @returns { string } The signed transaction OR its transaction hash if you set `broadcast: true` and the LIT action supports this functionality.
  */
 export async function registerUserWalletWithEncryptedKey(
-  params: RegisterUserWalletWithEncryptedKeyParams
+  params: RegisterUserWalletWithEncryptedKeyParams,
 ): Promise<string> {
-  const { litNodeClient, pkpSessionSigs, id } = params;
-  const sessionSig = getFirstSessionSig(pkpSessionSigs);
+  const { litNodeClient, pkpSessionSigs, id } = params
+  const sessionSig = getFirstSessionSig(pkpSessionSigs)
 
-  const storedKeyMetadata = await fetchPrivateKey({
+  const storedKeyMetadata = await fetchCachePrivateKey({
     id,
     sessionSig,
     litNetwork: litNodeClient.config.litNetwork,
-  });
+  })
 
-  const allowPkpAddressToDecrypt = getPkpAccessControlCondition(
-    storedKeyMetadata.pkpAddress
-  );
+  const allowPkpAddressToDecrypt = getPkpAccessControlCondition(storedKeyMetadata.pkpAddress)
 
   return registerUserWalletWithLitAction({
     ...params,
-    // litActionIpfsCid: getLitActionCid('nostr', 'messageHandler'),
     storedKeyMetadata,
     accessControlConditions: [allowPkpAddressToDecrypt],
-  });
+  })
 }
