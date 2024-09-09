@@ -15,6 +15,7 @@ import {
   NostrReplyWithEncryptedKeyParams,
   SendCryptoWithEncryptedKeyParams,
   WalletInfoWithEncryptedKeyParams,
+  getPkpSessionSigs,
 } from '@nakama/social-keys'
 
 const {
@@ -94,23 +95,13 @@ export const action = async (
     console.log('✅ Connected to Lit network')
     const expiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
     console.log('🔄 Getting PKP Session Sigs...')
-    let pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
+    let pkpSessionSigs = await getPkpSessionSigs({
+      ethersSigner,
+      litNodeClient,
       pkpPublicKey,
-      authMethods: [
-        await EthWalletProvider.authenticate({
-          signer: ethersSigner,
-          litNodeClient,
-          expiration,
-        }),
-      ],
-      resourceAbilityRequests: [
-        {
-          resource: new LitActionResource('*'),
-          ability: LitAbility.LitActionExecution,
-        },
-      ],
       expiration,
     })
+
     time = expiration
     // time = new Date(Date.now() + 1000 * 60 * 2).toISOString()
     console.log('✅ Got PKP Session Sigs')
@@ -171,26 +162,15 @@ export const action = async (
                   // Refresh Expiration time
                   const newExpiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
                   try {
-                    pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
+                    pkpSessionSigs = await getPkpSessionSigs({
+                      ethersSigner,
+                      litNodeClient,
                       pkpPublicKey,
-                      authMethods: [
-                        await EthWalletProvider.authenticate({
-                          signer: ethersSigner,
-                          litNodeClient,
-                          expiration: newExpiration,
-                        }),
-                      ],
-                      resourceAbilityRequests: [
-                        {
-                          resource: new LitActionResource('*'),
-                          ability: LitAbility.LitActionExecution,
-                        },
-                      ],
                       expiration: newExpiration,
                     })
                     time = newExpiration
                   } catch (error) {
-                    console.error('Error disconnecting from Lit network:', error.message)
+                    console.error('Error failed to update session Lit network:', error.message)
                   }
                 }
 

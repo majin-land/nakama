@@ -1,4 +1,5 @@
 import * as ethers from 'ethers'
+import { EthWalletProvider } from '@lit-protocol/lit-auth-client'
 
 import { log } from '@lit-protocol/misc'
 import {
@@ -9,6 +10,7 @@ import {
 } from '@lit-protocol/types'
 
 import { CHAIN_ETHEREUM } from './constants'
+import { LitAbility, LitActionResource } from '@lit-protocol/auth-helpers'
 
 /**
  *
@@ -84,4 +86,31 @@ export function getPkpAccessControlCondition(pkpAddress: string): AccsDefaultPar
       value: pkpAddress,
     },
   }
+}
+
+export async function getPkpSessionSigs(
+{
+  ethersSigner,
+  litNodeClient,
+  pkpPublicKey,
+  expiration,
+}
+) {
+  return await litNodeClient.getPkpSessionSigs({
+    pkpPublicKey,
+    authMethods: [
+      await EthWalletProvider.authenticate({
+        signer: ethersSigner,
+        litNodeClient,
+        expiration,
+      }),
+    ],
+    resourceAbilityRequests: [
+      {
+        resource: new LitActionResource('*'),
+        ability: LitAbility.LitActionExecution,
+      },
+    ],
+    expiration,
+  })
 }
