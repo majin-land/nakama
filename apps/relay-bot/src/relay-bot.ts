@@ -165,8 +165,8 @@ export async function startService({
           //   // this format will json format
           //   if (payload.toLowerCase().includes('send')) {
           // const result = await generateUserWallet(event)
-          // const result = await ethTransfer(event)
-          const result = await sendTransaction(event)
+          const result = await ethTransfer(event)
+          // const result = await sendTransaction(event)
           console.log(result)
           if (result && result.response) {
             const content = JSON.parse(result.response)
@@ -467,7 +467,6 @@ export async function generateUserWallet(event: EventTemplate) {
 
     const generateWallet = await litNodeClient.executeJs({
       sessionSigs,
-      // ipfsId: GENERATE_WALLET_IPFS_ID,
       code: LAEncryptRootKey,
       jsParams,
     })
@@ -687,7 +686,7 @@ export async function ethTransfer(event: VerifiedEvent) {
       ciphertext: storedKeyMetadata.ciphertext,
       dataToEncryptHash: storedKeyMetadata.dataToEncryptHash,
       accessControlConditions: [allowPkpAddressToDecrypt],
-      nostrRequest: event,
+      nostrEvent: event,
       seedCiphertext: userKeystore.seedCiphertext,
       seedDataToEncryptHash: userKeystore.seedDataToEncryptHash,
       toAddress: '0x407db279345Ecce984ffCEB2DF9f161A49c87c5C',

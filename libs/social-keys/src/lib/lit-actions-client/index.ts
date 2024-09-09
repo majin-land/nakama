@@ -6,7 +6,9 @@ import { exportPrivateKeyWithLitAction } from './export-private-key'
 import { claimKey } from './claim-key'
 import { signNostrEventWithLitAction } from './sign-nostr-event'
 import { registerUserWalletWithLitAction } from './register-wallet'
-import { sendTransactionWithLitAction } from './send-transaction'
+import { nostrReplyWithLitAction } from './nostr-reply'
+import { sendCryptoWithLitAction } from './send-crypto'
+import { walletInfoWithLitAction } from './wallet-info'
 
 export {
   generateKeyWithLitAction,
@@ -18,5 +20,7 @@ export {
   exportPrivateKeyWithLitAction,
   claimKey,
   registerUserWalletWithLitAction,
-  sendTransactionWithLitAction,
+  nostrReplyWithLitAction,
+  sendCryptoWithLitAction,
+  walletInfoWithLitAction,
 }
