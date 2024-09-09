@@ -164,6 +164,36 @@ export const action = async (
                   await litNodeClient.connect()
                   console.log('✅ Reconnected to Lit network')
                 }
+
+                if (time < new Date().toISOString()) {
+                  console.log('🔄 PKP Session Sigs Expired, Refreshing...')
+                  console.log('🔄 Refreshing PKP Session Sigs...')
+                  // Refresh Expiration time
+                  const newExpiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
+                  try {
+                    pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
+                      pkpPublicKey,
+                      authMethods: [
+                        await EthWalletProvider.authenticate({
+                          signer: ethersSigner,
+                          litNodeClient,
+                          expiration: newExpiration,
+                        }),
+                      ],
+                      resourceAbilityRequests: [
+                        {
+                          resource: new LitActionResource('*'),
+                          ability: LitAbility.LitActionExecution,
+                        },
+                      ],
+                      expiration: newExpiration,
+                    })
+                    time = newExpiration
+                  } catch (error) {
+                    console.error('Error disconnecting from Lit network:', error.message)
+                  }
+                }
+
                 const verifiedMessage = await signNostrEventWithEncryptedKey({
                   pkpSessionSigs,
                   id: wrappedKeyId,
@@ -316,30 +346,6 @@ export const action = async (
               }
             } catch (error) {
               console.error('Error handling event:', error)
-              // Refresh Expiration time
-              const newExpiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
-              try {
-                pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
-                  pkpPublicKey,
-                  authMethods: [
-                    await EthWalletProvider.authenticate({
-                      signer: ethersSigner,
-                      litNodeClient,
-                      expiration: newExpiration,
-                    }),
-                  ],
-                  resourceAbilityRequests: [
-                    {
-                      resource: new LitActionResource('*'),
-                      ability: LitAbility.LitActionExecution,
-                    },
-                  ],
-                  expiration: newExpiration,
-                })
-                time = newExpiration
-              } catch (error) {
-                console.error('Error disconnecting from Lit network:', error.message)
-              }
             }
           },
         },
