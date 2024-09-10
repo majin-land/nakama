@@ -15,6 +15,7 @@ import {
   NostrReplyWithEncryptedKeyParams,
   SendCryptoWithEncryptedKeyParams,
   WalletInfoWithEncryptedKeyParams,
+  getPkpSessionSigs,
 } from '@nakama/social-keys'
 
 const {
@@ -36,6 +37,8 @@ const SUPABASE_ADMIN_EMAIL = process.env.SUPABASE_ADMIN_EMAIL
 const SUPABASE_ADMIN_PASSWORD = process.env.SUPABASE_ADMIN_PASSWORD
 
 const PKP_KEY = `0x${PKP_PUBLIC_KEY}`
+
+let time: string
 
 const getUserKeyStore = async (pubkey) => {
   const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -90,25 +93,17 @@ export const action = async (
     })
     await litNodeClient.connect()
     console.log('✅ Connected to Lit network')
-
+    const expiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
     console.log('🔄 Getting PKP Session Sigs...')
-    const pkpSessionSigs = await litNodeClient.getPkpSessionSigs({
+    let pkpSessionSigs = await getPkpSessionSigs({
+      ethersSigner,
+      litNodeClient,
       pkpPublicKey,
-      authMethods: [
-        await EthWalletProvider.authenticate({
-          signer: ethersSigner,
-          litNodeClient,
-          expiration: new Date(Date.now() + 1000 * 60 * 14).toISOString(),
-        }),
-      ],
-      resourceAbilityRequests: [
-        {
-          resource: new LitActionResource('*'),
-          ability: LitAbility.LitActionExecution,
-        },
-      ],
-      expiration: new Date(Date.now() + 1000 * 60 * 14).toISOString(),
+      expiration,
     })
+
+    time = expiration
+    // time = new Date(Date.now() + 1000 * 60 * 2).toISOString()
     console.log('✅ Got PKP Session Sigs')
 
     console.log('🔄 Getting Relay list...')
@@ -160,6 +155,25 @@ export const action = async (
                   await litNodeClient.connect()
                   console.log('✅ Reconnected to Lit network')
                 }
+
+                if (time < new Date().toISOString()) {
+                  console.log('🔄 PKP Session Sigs Expired, Refreshing...')
+                  console.log('🔄 Refreshing PKP Session Sigs...')
+                  // Refresh Expiration time
+                  const newExpiration = new Date(Date.now() + 1000 * 60 * 10).toISOString()
+                  try {
+                    pkpSessionSigs = await getPkpSessionSigs({
+                      ethersSigner,
+                      litNodeClient,
+                      pkpPublicKey,
+                      expiration: newExpiration,
+                    })
+                    time = newExpiration
+                  } catch (error) {
+                    console.error('Error failed to update session Lit network:', error.message)
+                  }
+                }
+
                 const verifiedMessage = await signNostrEventWithEncryptedKey({
                   pkpSessionSigs,
                   id: wrappedKeyId,

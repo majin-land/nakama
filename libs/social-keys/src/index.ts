@@ -24,8 +24,8 @@ import {
   KEYTYPE_K256,
   KEYTYPE_ED25519,
 } from './lib/constants'
-
-import { getFirstSessionSig, getPkpAccessControlCondition } from './lib/utils'
+  
+import { getFirstSessionSig, getPkpAccessControlCondition, getPkpSessionSigs } from './lib/utils'
 
 import {
   getChainForNetwork,
@@ -125,6 +125,7 @@ export {
   getChainForNetwork,
   getGasParamsForNetwork,
   getBaseTransactionForNetwork,
+  getPkpSessionSigs,
   NostrMetadata,
   SignMetadataWithEncryptedKeyParams,
   SignRelayListWithEncryptedKeyParams,
