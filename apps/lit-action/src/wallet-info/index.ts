@@ -33,12 +33,11 @@ import { removeSaltFromDecryptedKey } from '../utils.js'
       return
     }
 
+    
     let rootHDNode
     try {
-      const textEncoder = new TextEncoder()
-      const seedUint8Array = new Uint8Array(64)
-      textEncoder.encodeInto(seed, seedUint8Array)
-      rootHDNode = ethers.utils.HDNode.fromSeed(seedUint8Array)
+      const seedToUint8Array = new Uint8Array(seed.split(',').map(Number))
+      rootHDNode = ethers.utils.HDNode.fromSeed(seedToUint8Array)
     } catch (err) {
       Lit.Actions.setResponse({ response: 'ERR HDNode.fromSeed ' + err.message })
       return
